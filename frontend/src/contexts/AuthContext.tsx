@@ -1,22 +1,29 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
+import { clearSupabaseStorage, supabase } from '@/lib/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
+import LogoutModal from '@/components/modals/LogoutModal';
 
-type AuthContext = {
+export type AuthContext = {
     user: User | null;
     session: Session | null;
     authLoading: boolean;
     login: (opts: { email: string; password: string }) => Promise<{ error: string | null }>;
     logout: () => Promise<void>;
+    openLogoutModal: () => void;
 };
 
 const AuthContext = createContext<AuthContext | undefined>(undefined);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+    const queryClient = useQueryClient();
+
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
     const [authLoading, setAuthLoading] = useState(true);
+
+    const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -68,6 +75,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const { error } = await supabase.auth.signOut();
 
         if (error) console.error('Sign-out error', error);
+
+        clearSupabaseStorage();
+        queryClient.clear();
+        window.location.href = '/login';
     };
 
     const contextValue: AuthContext = {
@@ -76,9 +87,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
         authLoading,
         login,
         logout,
+        openLogoutModal: () => setLogoutModalOpen(true),
     };
 
-    return <AuthContext.Provider value={contextValue} children={children} />;
+    return (
+        <AuthContext.Provider value={contextValue}>
+            {children}
+            <LogoutModal open={logoutModalOpen} onOpenChange={setLogoutModalOpen} logout={logout} />
+        </AuthContext.Provider>
+    );
 }
 
 export function useAuth() {

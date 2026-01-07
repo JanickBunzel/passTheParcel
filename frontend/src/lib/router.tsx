@@ -1,19 +1,21 @@
 import {
-    RouterProvider,
     createRootRouteWithContext,
     createRoute,
     createRouter,
+    Navigate,
     Outlet,
     redirect,
-    Navigate,
 } from '@tanstack/react-router';
-import { supabase } from '@/lib/supabaseClient';
-import { AuthLayout } from '@/layout/AuthLayout';
-import { Login } from '@/pages/Login';
+import type { AuthContext } from '@/contexts/AuthContext';
+import type { AccountContext } from '@/contexts/AccountContext';
+
+import Login from '@/pages/Login';
 import Home from '@/pages/Home';
+import Paket from '@/pages/Paket';
 
 export type RouterContext = {
-    supabase: typeof supabase;
+    auth: AuthContext;
+    account: AccountContext;
 };
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
@@ -25,47 +27,63 @@ const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/login',
     component: Login,
-});
+    beforeLoad: ({ context }) => {
+        if (context.auth.authLoading || context.account.accountLoading) return;
 
-const authenticatedRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    id: 'authenticated',
-    component: AuthLayout,
-    beforeLoad: async ({ context }) => {
-        const { data, error } = await context.supabase.auth.getSession();
-
-        if (error) {
-            console.error('Error getting session in beforeLoad', error);
-            throw redirect({ to: '/login' });
+        if (context.auth.user && context.account.account) {
+            throw redirect({ to: '/', replace: true });
         }
-
-        if (!data.session) throw redirect({ to: '/login' });
-
-        return {};
     },
 });
 
-const homeRoute = createRoute({
+// Auth check
+const authenticatedRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    id: 'authenticated',
+    beforeLoad: ({ context }) => {
+        if (context.auth.authLoading) return;
+        if (!context.auth.user) throw redirect({ to: '/login' });
+    },
+    component: Outlet,
+});
+
+// Account check
+const indexRoute = createRoute({
     getParentRoute: () => authenticatedRoute,
     path: '/',
+    beforeLoad: ({ context }) => {
+        if (context.auth.authLoading || context.account.accountLoading) return;
+        if (!context.account.account) throw redirect({ to: '/login' });
+    },
     component: Home,
 });
 
-const routeTree = rootRoute.addChildren([loginRoute, authenticatedRoute.addChildren([homeRoute])]);
+// Routes
+const pages = [{ path: 'paket', component: Paket }] as const;
+
+// Router
+const routeTree = rootRoute.addChildren([
+    loginRoute,
+    authenticatedRoute.addChildren([
+        indexRoute,
+        ...pages.map(({ path, component }) =>
+            createRoute({
+                getParentRoute: () => authenticatedRoute,
+                path,
+                component,
+            })
+        ),
+    ]),
+]);
 
 export const router = createRouter({
     routeTree,
-    context: { supabase },
+    context: null as unknown as RouterContext,
     defaultPreload: 'intent',
-    notFoundMode: 'root',
 });
 
 declare module '@tanstack/react-router' {
     interface Register {
         router: typeof router;
     }
-}
-
-export function AppRouter() {
-    return <RouterProvider router={router} />;
 }

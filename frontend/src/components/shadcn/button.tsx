@@ -10,13 +10,22 @@ const buttonVariants = cva(
         variants: {
             variant: {
                 default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-                destructive:
-                    'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+
                 outline:
                     'border bg-white shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
+
                 secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+
                 ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
+
                 link: 'text-primary underline-offset-4 hover:underline',
+
+                destructive:
+                    'text-destructive !text-destructive bg-transparent hover:bg-destructive/10 focus:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-destructive/20 dark:hover:bg-destructive/20 dark:focus:bg-destructive/20 dark:focus-visible:bg-destructive/20',
+                destructiveOutline:
+                    'border border-destructive/30 text-destructive bg-destructive/10 hover:bg-destructive/7 focus:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-destructive/20 dark:hover:bg-destructive/20 dark:focus:bg-destructive/20 dark:focus-visible:bg-destructive/20',
+                destructiveFull:
+                    'bg-destructive text-white hover:bg-destructive/90 focus:bg-destructive/90 focus-visible:ring-destructive/20 dark:hover:bg-destructive/80 dark:focus:bg-destructive/80',
             },
             size: {
                 default: 'h-9 px-4 py-2 has-[>svg]:px-3',

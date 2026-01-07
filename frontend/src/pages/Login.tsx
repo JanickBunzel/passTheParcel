@@ -1,64 +1,76 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useRouter } from '@tanstack/react-router';
 import { Eye, EyeOff, Loader2, SquareArrowOutUpRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shadcn/card';
-import { Button } from '@/shadcn/button';
-import { Label } from '@/shadcn/label';
-import { Input } from '@/shadcn/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card';
+import { Button } from '@/components/shadcn/button';
+import { Label } from '@/components/shadcn/label';
+import { Input } from '@/components/shadcn/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccount } from '@/contexts/AccountContext';
+import { isDev, SHOW_TEST_USER_LOGINS } from '@/lib/env';
+import { router } from '@/lib/router';
 
-export function Login() {
-    const { login, user, authLoading } = useAuth();
-    const router = useRouter();
+type TestUserLogin = {
+    label: string;
+    email: string;
+    password: string;
+};
+const TEST_USERS: TestUserLogin[] = [
+    { label: 'Alice Example', email: 'alice@example.com', password: '123' },
+    { label: 'Bob Example', email: 'bob@example.com', password: '123' },
+    { label: 'Carla Example', email: 'carla@example.com', password: '123' },
+];
+
+const Login = () => {
+    const { user, login, authLoading } = useAuth();
+    const { account, accountLoading } = useAccount();
+
+    useEffect(() => {
+        // If auth isnt loading and there is an active session, redirect to index
+        if (!authLoading && user && !accountLoading && account) {
+            void router.navigate({ to: '/' });
+        }
+    }, [user, authLoading, account, accountLoading]);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const [showPassword, setShowPassword] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string>('');
-
-    useEffect(() => {
-        // If auth isnt loading and there is an active user session, redirect to dashboard
-        if (!authLoading && user) {
-            void router.navigate({ to: '/' });
-        }
-    }, [user, authLoading, router]);
 
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        setIsSubmitting(true);
         setError('');
 
-        const { error } = await login({ email, password });
-
-        if (error) {
-            setError(error);
-        } else {
-            void router.navigate({ to: '/' });
-        }
-
-        setIsSubmitting(false);
+        login({ email, password }).then(({ error }) => {
+            if (error) setError(error);
+        });
     };
 
+    const loginLoading = authLoading || accountLoading;
+
     return (
-        <div className="flex flex-col gap-10 items-center pt-[20vh]">
-            {import.meta.env.DEV && (
-                <Button
-                    variant="outline"
-                    className="fixed bottom-4 left-4"
-                    onClick={() => {
-                        setEmail('testuser@example.com');
-                        setPassword('Test1234!');
-                    }}
-                >
-                    TestUser1 <SquareArrowOutUpRight />
-                </Button>
+        <div className="h-screen flex flex-col gap-10 items-center justify-center px-4 sm:px-0 pb-24">
+            {(isDev || SHOW_TEST_USER_LOGINS) && (
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {TEST_USERS.map((user) => (
+                        <Button
+                            key={user.label}
+                            variant="outline"
+                            onClick={() => {
+                                setEmail(user.email);
+                                setPassword(user.password);
+                            }}
+                        >
+                            {user.label} <SquareArrowOutUpRight />
+                        </Button>
+                    ))}
+                </div>
             )}
 
-            <h1 className="mb-8 uppercase text-primary text-4xl font-bold">PassTheParcel</h1>
-            <Card className="w-96 shadow-md">
+            <h1 className="mb-8 uppercase text-primary text-4xl font-bold">Pass The Parcel</h1>
+
+            <Card className="sm:w-96 shadow-md py-6 px-0 gap-2 rounded-xl">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Login</CardTitle>
                 </CardHeader>
@@ -96,6 +108,7 @@ export function Login() {
                                     className="size-7 opacity-50 absolute right-1 top-1 bottom-1"
                                     title={showPassword ? 'Hide Password' : 'Show Password'}
                                     onClick={() => setShowPassword((prev) => !prev)}
+                                    tabIndex={-1}
                                 >
                                     {showPassword ? <Eye /> : <EyeOff />}
                                 </Button>
@@ -104,8 +117,8 @@ export function Login() {
 
                         {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
-                        <Button type="submit" className="w-full font-bold" disabled={authLoading || isSubmitting}>
-                            {authLoading ? (
+                        <Button type="submit" className="w-full font-bold" disabled={loginLoading}>
+                            {loginLoading ? (
                                 <>
                                     <span>Logging in...</span>
                                     <Loader2 className="animate-spin" />
@@ -119,4 +132,6 @@ export function Login() {
             </Card>
         </div>
     );
-}
+};
+
+export default Login;
