@@ -1,0 +1,29 @@
+# https://supabase.com/docs/guides/local-development/cli/config
+# A string used to distinguish different Supabase projects on the same host. Defaults to the working directory name when running `supabase init`.
+project_id = "PassTheParcel"
+
+
+[db]
+# The database major version to use. This has to be the same as your remote database's. Run `SHOW server_version;` on the remote database to check.
+major_version = 17
+
+# Seeds the database after migrations during a db reset.
+[db.seed]
+# Specifies an ordered list of seed files to load during db reset.
+# Supports glob patterns relative to supabase directory: "./seeds/*.sql"
+sql_paths = ["./seed.sql"]
+
+
+[analytics]
+enabled = true
+port = 54327
+
+
+[edge_runtime]
+# Supported request policies: `oneshot`, `per_worker`.
+# `per_worker` (default) — enables hot reload during local development.
+# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+policy = "per_worker"
+# The Deno major version to use.
+deno_version = 2
+

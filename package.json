@@ -1,0 +1,12 @@
+{
+  "name": "pass-the-parcel",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "preview": "pnpm --filter frontend preview",
+    "lint": "pnpm --filter frontend lint",
+    "typegen": "supabase gen types typescript --local > frontend/src/lib/database.types.ts && git diff --exit-code frontend/src/lib/database.types.ts"
+  }
+}

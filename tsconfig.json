@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true
+  },
+  // This tsconfig doesn't compile any files itself
+  "files": [],
+  "references": [{ "path": "./frontend" }],
+  "exclude": ["supabase"]
+}

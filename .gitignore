@@ -1,7 +1,14 @@
 # macOS
 .DS_Store
 
+# Supabase
+supabase/.branches
+supabase/.temp
+
 # Environment files
 .env
 .env.*
 !.env.example*
+
+# Node modules
+node_modules/
