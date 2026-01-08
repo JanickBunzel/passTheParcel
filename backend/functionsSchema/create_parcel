@@ -2,7 +2,8 @@ Accepts a POST request with JSON body, extract parcel details and inserts into s
 const supabaseUrl = 'https://joyhrjrniigcnbgvlrcl.supabase.co'
 
 URL:
-"/create_parcel/"
+"/parcels/create_parcel/"
+
 expected from http request body:
 {
   "sender_name": String,
