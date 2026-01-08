@@ -1,2 +1,11 @@
 Accepts PUT/PATCH(tbd) request with JSON body and updates the db
+Some fields should be final for example, origin, destination, weight etc should not be changed so an error will be raised if any of these have new info
 
+const supabaseUrl = 'https://joyhrjrniigcnbgvlrcl.supabase.co'
+
+expected from http request body:
+    {
+  "id": UUID,
+  "payment": "complete",
+}
+returns response code 200
