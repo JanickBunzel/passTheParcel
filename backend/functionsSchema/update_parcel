@@ -3,9 +3,11 @@ Some fields should be final for example, origin, destination, weight etc should 
 
 const supabaseUrl = 'https://joyhrjrniigcnbgvlrcl.supabase.co'
 
+URL:
+"/parcels/update_parcel/{parcel_id}")
+
 expected from http request body:
     {
-  "id": UUID,
   "payment": "complete",
 }
 returns response code 200
