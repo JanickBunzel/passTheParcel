@@ -1,0 +1,6 @@
+GET http request to retrieve info on parcel
+
+URL:
+"/parcels/retrieve_parcel"
+
+Parameters expected in body
