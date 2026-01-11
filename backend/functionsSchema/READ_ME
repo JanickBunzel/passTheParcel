@@ -1,0 +1,8 @@
+Suggested approach
+
+Domain Driven Design(DDD)
+
+Service Layer which is called by the frontend to perform task-based API requests, this models the specific actions and intents of the user such as 'parcel_post', 'parcel_pass' etc
+This layer calls a repository layer which handles genereal operations such as CRUD on the database. The sevice layer should describe why the interaction with the db is happening as well as validating that the user has the authority to do that.
+The repo layer is a lower level of operations which performs task such as parcel_create and parcel_update, and should be called by the service layer while also validating general object states and types.
+
