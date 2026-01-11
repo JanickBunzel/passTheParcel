@@ -1,0 +1,10 @@
+GET http request to retrieve info on parcel
+
+URL:
+"/parcels/retrieve_parcel/{parcel_id}"
+
+Parameters expected in request body
+none
+
+returns response code 2xx(tbc) and parcel info
+

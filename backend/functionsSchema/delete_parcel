@@ -1,0 +1,17 @@
+DELETE http request to delete parcel from db
+
+expects parcel id as a path parameter in the URL
+
+use FastAPI + Pydantic to validate parameters passed as JSON string in body are valid types
+could also do this manually
+  
+URL:
+"/parcels/delete_parcel/{parcel_id}")
+
+  
+{
+  "id": UUID
+}
+
+
+Sidenote- need to consider how we authenticate users for our functions

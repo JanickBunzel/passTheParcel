@@ -1,0 +1,25 @@
+Accepts a POST request with JSON body, extract parcel details and inserts into supabase db
+const supabaseUrl = 'https://joyhrjrniigcnbgvlrcl.supabase.co'
+
+URL:
+"/parcels/create_parcel/"
+
+expected from http request body:
+{
+  "sender_name": String,
+  "receiver_name": String,
+  "origin": String,
+  "destination": String,
+  "owner": String,
+  "parcel_type": Enum,
+  "weight": float,
+  "payment": String,
+  "description": String,
+  
+  "dimensions": {
+    "length": float,
+    "width": float,
+    "height": float
+  }
+
+  returns response code 201
