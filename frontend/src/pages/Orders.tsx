@@ -1,19 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/shadcn/card";
-import { Button } from "@/components/shadcn/button";
-import { Input } from "@/components/shadcn/input";
-import {
-    ShoppingCart,
-    Filter,
-    ArrowUpDown,
-    Package,
-    MapPin,
-    Plus,
-    AlertTriangle,
-    Leaf,
-} from "lucide-react";
+import { Package, MapPin, Leaf, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
+import { Button } from '@/components/shadcn/button.tsx';
 import { Link } from '@tanstack/react-router';
 
 // -----------------------------
@@ -52,22 +42,20 @@ function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
 // Component
 // -----------------------------
 
-export default function OrderSearchPage() {
-    const [query, setQuery] = useState<string>("");
+export default function MyOrdersPage() {
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [cart, setCart] = useState<OrderWithParcel[]>([]);
-    const [user, setUser] = useState<any>(null); // Current logged-in user
+    const [user, setUser] = useState<any>(null); // users row
 
     useEffect(() => {
-        const fetchUser = async () => {
-            // get current account from auth
+        const fetchCurrentUser = async () => {
+            // get logged-in account
             const { data: { user: accountUser }, error: accountError } = await supabase.auth.getUser();
             if (accountError || !accountUser) {
                 console.error("No account logged in:", accountError);
                 return;
             }
 
-            // fetch the corresponding users row
+            // get corresponding users row
             const { data: usersData, error: usersError } = await supabase
                 .from("users")
                 .select("*")
@@ -79,22 +67,24 @@ export default function OrderSearchPage() {
                 return;
             }
 
-            setUser(usersData); // store users row
+            setUser(usersData);
         };
 
-        fetchUser();
+        fetchCurrentUser();
     }, []);
 
     useEffect(() => {
         const fetchOrders = async () => {
-            // fetch orders where owner is NULL
+            if (!user) return;
+
+            // fetch orders owned by current user
             const { data: ordersData, error: ordersError } = await supabase
                 .from("orders")
                 .select("*")
-                .is("owner", null);
+                .eq("owner", user.id);
 
             if (ordersError || !ordersData) {
-                console.error(ordersError);
+                console.error("Failed to fetch orders:", ordersError);
                 return;
             }
 
@@ -106,7 +96,7 @@ export default function OrderSearchPage() {
                 .in("id", parcelIds);
 
             if (parcelsError || !parcelsData) {
-                console.error(parcelsError);
+                console.error("Failed to fetch parcels:", parcelsError);
                 return;
             }
 
@@ -130,49 +120,18 @@ export default function OrderSearchPage() {
         };
 
         fetchOrders();
-    }, []);
-
-    const addToCart = async (order: OrderWithParcel) => {
-        if (!user) {
-            console.warn("No user logged in!");
-            return;
-        }
-
-        // update the owner of the order in Supabase
-        const { error } = await supabase
-            .from("orders")
-            .update({ owner: user.id })
-            .eq("id", order.id);
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-
-        // update local state
-        setCart((prev) => [...prev, order]);
-        setOrders((prev) => prev.filter((o) => o.id !== order.id));
-    };
+    }, [user]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Top bar */}
-            <div className="p-4 bg-white shadow-sm flex items-center gap-2">
-                <Input
-                    placeholder="Where are you going?"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-                <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                    <ArrowUpDown className="h-4 w-4" />
-                </Button>
-            </div>
-
-            {/* Order list */}
+            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {orders.length === 0 && (
+                    <div className="text-center text-gray-500 mt-10">
+                        You haven’t taken any orders yet.
+                    </div>
+                )}
+
                 {orders.map((order) => {
                     const { parcel, distanceKm, price, co2 } = order;
                     return (
@@ -198,10 +157,6 @@ export default function OrderSearchPage() {
                                         )}
                                     </div>
                                 </div>
-
-                                <Button size="icon" onClick={() => addToCart(order)}>
-                                    <Plus />
-                                </Button>
                             </CardContent>
                         </Card>
                     );
@@ -219,11 +174,6 @@ export default function OrderSearchPage() {
                 <Button variant="ghost" asChild className="relative">
                     <Link to="/orders">
                         <ShoppingCart />
-                        {cart.length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2">
-                  {cart.length}
-                </span>
-                        )}
                     </Link>
                 </Button>
             </div>
