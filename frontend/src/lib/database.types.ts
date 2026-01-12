@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       accounts: {
@@ -55,6 +30,206 @@ export type Database = {
         }
         Relationships: []
       }
+      addresses: {
+        Row: {
+          city_name: string
+          coordinates: Json
+          country: string
+          house_number: string
+          id: string
+          postal_code: string
+          street_name: string
+        }
+        Insert: {
+          city_name: string
+          coordinates: Json
+          country: string
+          house_number: string
+          id?: string
+          postal_code: string
+          street_name: string
+        }
+        Update: {
+          city_name?: string
+          coordinates?: Json
+          country?: string
+          house_number?: string
+          id?: string
+          postal_code?: string
+          street_name?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          finished: string | null
+          from: string
+          id: string
+          next: string | null
+          owner: string | null
+          parcel: string
+          started: string | null
+          to: string
+        }
+        Insert: {
+          finished?: string | null
+          from: string
+          id?: string
+          next?: string | null
+          owner?: string | null
+          parcel: string
+          started?: string | null
+          to: string
+        }
+        Update: {
+          finished?: string | null
+          from?: string
+          id?: string
+          next?: string | null
+          owner?: string | null
+          parcel?: string
+          started?: string | null
+          to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_from_fkey"
+            columns: ["from"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_next_fkey"
+            columns: ["next"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_parcel_fkey"
+            columns: ["parcel"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_to_fkey"
+            columns: ["to"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcels: {
+        Row: {
+          description: string | null
+          destination: string | null
+          id: string
+          owner: string
+          receiver: string
+          sender: string
+          size: Json | null
+          type: Database["public"]["Enums"]["parcel_type"]
+          weight: number | null
+        }
+        Insert: {
+          description?: string | null
+          destination?: string | null
+          id?: string
+          owner: string
+          receiver: string
+          sender: string
+          size?: Json | null
+          type?: Database["public"]["Enums"]["parcel_type"]
+          weight?: number | null
+        }
+        Update: {
+          description?: string | null
+          destination?: string | null
+          id?: string
+          owner?: string
+          receiver?: string
+          sender?: string
+          size?: Json | null
+          type?: Database["public"]["Enums"]["parcel_type"]
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcels_destination_fkey"
+            columns: ["destination"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcels_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcels_receiver_fkey"
+            columns: ["receiver"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcels_sender_fkey"
+            columns: ["sender"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          account: string
+          address: string
+          id: string
+          type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          account?: string
+          address: string
+          id?: string
+          type?: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          account?: string
+          address?: string
+          id?: string
+          type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_account_fkey"
+            columns: ["account"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_address_fkey"
+            columns: ["address"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -66,7 +241,8 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      parcel_type: "NORMAL" | "FOOD" | "FRAGILE"
+      user_type: "END_USER" | "COURIER" | "DISTRIBUTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -192,11 +368,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
-    Enums: {},
+    Enums: {
+      parcel_type: ["NORMAL", "FOOD", "FRAGILE"],
+      user_type: ["END_USER", "COURIER", "DISTRIBUTOR"],
+    },
   },
 } as const
 
