@@ -52,7 +52,8 @@ const indexRoute = createRoute({
     getParentRoute: () => authenticatedRoute,
     path: '/',
     beforeLoad: ({ context }) => {
-        if (context.auth.authLoading || context.account.accountLoading) return;
+        if (context.account.accountLoading) return;
+
         if (!context.account.account) throw redirect({ to: '/login' });
     },
     component: Home,
