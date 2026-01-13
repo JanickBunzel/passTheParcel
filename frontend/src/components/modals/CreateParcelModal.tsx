@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/shadcn/button";
-import { Input } from "@/components/shadcn/input";
-import { Textarea } from "@/components/shadcn/textarea";
-import { supabase } from "@/lib/supabaseClient";
-import { X } from "lucide-react";
-import type { Database } from "@/lib/database.types";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/shadcn/button';
+import { Input } from '@/components/shadcn/input';
+import { Textarea } from '@/components/shadcn/textarea';
+import { supabase } from '@/lib/supabaseClient';
+import { X } from 'lucide-react';
+import type { Database } from '@/lib/database.types';
 
 /* ---------- types ---------- */
-type ParcelInsert = Database["public"]["Tables"]["parcels"]["Insert"];
-type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
-type AccountRow = Database["public"]["Tables"]["accounts"]["Row"];
-type AddressRow = Database["public"]["Tables"]["addresses"]["Row"];
+type ParcelInsert = Database['public']['Tables']['parcels']['Insert'];
+type OrderInsert = Database['public']['Tables']['orders']['Insert'];
+type AccountRow = Database['public']['Tables']['accounts']['Row'];
+type AddressRow = Database['public']['Tables']['addresses']['Row'];
 
 type Props = {
     open: boolean;
@@ -19,25 +19,18 @@ type Props = {
     ownerAddress: string | null;
 };
 
-export default function CreateParcelModal({
-                                              open,
-                                              onClose,
-                                              ownerId,
-                                              ownerAddress,
-                                          }: Props) {
+export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress }: Props) {
     const [loading, setLoading] = useState(false);
     const [accounts, setAccounts] = useState<AccountRow[]>([]);
     const [addresses, setAddresses] = useState<AddressRow[]>([]);
 
-    const [fromAddress, setFromAddress] = useState<string>(
-        ownerAddress ?? ""
-    );
+    const [fromAddress, setFromAddress] = useState<string>(ownerAddress ?? '');
 
     const [form, setForm] = useState<ParcelInsert>({
-        destination: "",
+        destination: '',
         weight: 1,
-        description: "",
-        type: "NORMAL",
+        description: '',
+        type: 'NORMAL',
         owner: ownerId,
         sender: ownerId,
         receiver: null,
@@ -49,8 +42,8 @@ export default function CreateParcelModal({
 
         const loadData = async () => {
             const [{ data: acc }, { data: addr }] = await Promise.all([
-                supabase.from("accounts").select("id, name, email"),
-                supabase.from("addresses").select("*"),
+                supabase.from('accounts').select('*'),
+                supabase.from('addresses').select('*'),
             ]);
 
             if (acc) setAccounts(acc);
@@ -65,18 +58,14 @@ export default function CreateParcelModal({
     /* ---------- submit ---------- */
     const submit = async () => {
         if (!form.destination || !fromAddress) {
-            alert("Please select from and destination addresses");
+            alert('Please select from and destination addresses');
             return;
         }
 
         setLoading(true);
 
         /* 1️⃣ create parcel */
-        const { data: parcel, error: parcelError } = await supabase
-            .from("parcels")
-            .insert(form)
-            .select()
-            .single();
+        const { data: parcel, error: parcelError } = await supabase.from('parcels').insert(form).select().single();
 
         if (parcelError || !parcel) {
             console.error(parcelError);
@@ -95,15 +84,13 @@ export default function CreateParcelModal({
             finished: null,
         };
 
-        const { error: orderError } = await supabase
-            .from("orders")
-            .insert(order);
+        const { error: orderError } = await supabase.from('orders').insert(order);
 
         setLoading(false);
 
         if (orderError) {
             console.error(orderError);
-            alert("Parcel created but order creation failed");
+            alert('Parcel created but order creation failed');
             return;
         }
 
@@ -130,8 +117,7 @@ export default function CreateParcelModal({
                     <option value="">From address</option>
                     {addresses.map((addr) => (
                         <option key={addr.id} value={addr.id}>
-                            {addr.street} {addr.house_number},{" "}
-                            {addr.city}
+                            {addr.street} {addr.house_number}, {addr.city}
                         </option>
                     ))}
                 </select>
@@ -139,7 +125,7 @@ export default function CreateParcelModal({
                 {/* Receiver */}
                 <select
                     className="w-full border rounded-md p-2"
-                    value={form.receiver ?? ""}
+                    value={form.receiver ?? ''}
                     onChange={(e) =>
                         setForm({
                             ...form,
@@ -159,15 +145,12 @@ export default function CreateParcelModal({
                 <select
                     className="w-full border rounded-md p-2"
                     value={form.destination}
-                    onChange={(e) =>
-                        setForm({ ...form, destination: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, destination: e.target.value })}
                 >
                     <option value="">Destination</option>
                     {addresses.map((addr) => (
                         <option key={addr.id} value={addr.id}>
-                            {addr.street} {addr.house_number},{" "}
-                            {addr.city}
+                            {addr.street} {addr.house_number}, {addr.city}
                         </option>
                     ))}
                 </select>
@@ -179,9 +162,7 @@ export default function CreateParcelModal({
                     step={0.1}
                     placeholder="Weight (kg)"
                     value={form.weight}
-                    onChange={(e) =>
-                        setForm({ ...form, weight: Number(e.target.value) })
-                    }
+                    onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })}
                 />
 
                 {/* Type */}
@@ -191,7 +172,7 @@ export default function CreateParcelModal({
                     onChange={(e) =>
                         setForm({
                             ...form,
-                            type: e.target.value as ParcelInsert["type"],
+                            type: e.target.value as ParcelInsert['type'],
                         })
                     }
                 >
@@ -203,10 +184,8 @@ export default function CreateParcelModal({
                 {/* Description */}
                 <Textarea
                     placeholder="Description (optional)"
-                    value={form.description ?? ""}
-                    onChange={(e) =>
-                        setForm({ ...form, description: e.target.value })
-                    }
+                    value={form.description ?? ''}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
 
                 {/* Actions */}
@@ -215,7 +194,7 @@ export default function CreateParcelModal({
                         Cancel
                     </Button>
                     <Button onClick={submit} disabled={loading}>
-                        {loading ? "Creating…" : "Create Parcel"}
+                        {loading ? 'Creating…' : 'Create Parcel'}
                     </Button>
                 </div>
             </div>

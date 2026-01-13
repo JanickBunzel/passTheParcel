@@ -1,19 +1,19 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/shadcn/card";
-import { Package, MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import type { Database } from "@/lib/database.types";
-import { Button } from "@/components/shadcn/button";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/shadcn/card';
+import { MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import type { Database } from '@/lib/database.types';
+import { Button } from '@/components/shadcn/button';
+import { Link } from '@tanstack/react-router';
 
 /* ---------------- types ---------------- */
 
-type ParcelRow = Database["public"]["Tables"]["parcels"]["Row"];
-type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
-type AddressRow = Database["public"]["Tables"]["addresses"]["Row"];
-type UserRow = Database["public"]["Tables"]["accounts"]["Row"];
+type ParcelRow = Database['public']['Tables']['parcels']['Row'];
+type OrderRow = Database['public']['Tables']['orders']['Row'];
+type AddressRow = Database['public']['Tables']['addresses']['Row'];
+type UserRow = Database['public']['Tables']['accounts']['Row'];
 
-type OrderWithParcel = OrderRow & {
+type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
     parcel: ParcelRow;
     fromAddress?: AddressRow | null;
     toAddress?: AddressRow | null;
@@ -25,53 +25,43 @@ type OrderWithParcel = OrderRow & {
 
 /* ---------------- mock helpers ---------------- */
 
-const calculateDistanceKm = () =>
-    Number((Math.random() * 4.8 + 0.2).toFixed(2));
+const calculateDistanceKm = () => Number((Math.random() * 4.8 + 0.2).toFixed(2));
 
-const calculatePrice = (parcel: ParcelRow, km: number) =>
-    Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
+const calculatePrice = (parcel: ParcelRow, km: number) => Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
 
-const calculateCO2Saved = (_: ParcelRow, km: number) =>
-    Math.round(km * 120);
-
+const calculateCO2Saved = (_: ParcelRow, km: number) => Math.round(km * 120);
 
 // Address display helper
 function formatAddress(address?: any | null) {
-    if (!address) return "Unknown location";
+    if (!address) return 'Unknown location';
 
-    const parts = [
-        address.street,
-        address.postcode,
-        address.city,
-        address.country,
-    ].filter(Boolean);
+    const parts = [address.street, address.postcode, address.city, address.country].filter(Boolean);
 
     if (parts.length > 0) {
-        return parts.join(", ");
+        return parts.join(', ');
     }
 
     if (address.lat && address.lng) {
         return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
     }
 
-    return "Unknown location";
+    return 'Unknown location';
 }
 
 // Receiver display helper
 function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
-    if (!parcel.receiver) return "Unknown receiver";
-    if (!receiver) return "Unknown receiver";
+    if (!parcel.receiver) return 'Unknown receiver';
+    if (!receiver) return 'Unknown receiver';
 
-    return receiver.name ?? receiver.email ?? "Unknown receiver";
+    return receiver.name ?? receiver.email ?? 'Unknown receiver';
 }
-
 
 /* ---------------- component ---------------- */
 
 export default function MyOrdersPage() {
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
-    const [tab, setTab] = useState<"ACTIVE" | "PAST">("ACTIVE");
+    const [tab, setTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
 
     /* ---------- current user ---------- */
     useEffect(() => {
@@ -85,50 +75,47 @@ export default function MyOrdersPage() {
         if (!userId) return;
 
         const fetchOrders = async () => {
-            const { data: ordersData } = await supabase
-                .from("orders")
-                .select("*")
-                .eq("owner", userId);
+            const { data: ordersData } = await supabase.from('orders').select('*').eq('owner', userId);
 
             if (!ordersData || ordersData.length === 0) {
                 setOrders([]);
                 return;
             }
 
-            const parcelIds = ordersData.map(o => o.parcel);
+            const parcelIds = ordersData.map((o) => o.parcel);
 
-            const { data: parcelsData } = await supabase
-                .from("parcels")
-                .select("*")
-                .in("id", parcelIds);
+            const { data: parcelsData } = await supabase.from('parcels').select('*').in('id', parcelIds);
 
             if (!parcelsData) return;
 
-            const addressIds = ordersData.flatMap(o => [o.from, o.to]).filter(Boolean);
-            const receiverIds = parcelsData.map(p => p.receiver).filter(Boolean);
+            // Filter out nulls for addressIds and receiverIds
+            const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
+            const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
 
-            const { data: addresses } = await supabase
-                .from("addresses")
-                .select("*")
-                .in("id", addressIds);
+            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
 
-            const { data: receivers } = await supabase
-                .from("accounts") // or "accounts"
-                .select("*")
-                .in("id", receiverIds);
+            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
 
-            const enriched = ordersData.map(order => {
-                const parcel = parcelsData.find(p => p.id === order.parcel)!;
+            const enriched: OrderWithParcel[] = ordersData.map((order) => {
+                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
                 const distanceKm = calculateDistanceKm();
                 const price = calculatePrice(parcel, distanceKm);
                 const co2 = calculateCO2Saved(parcel, distanceKm);
 
                 return {
-                    ...order,
-                    parcel,
-                    fromAddress: addresses?.find(a => a.id === order.from) ?? null,
-                    toAddress: addresses?.find(a => a.id === order.to) ?? null,
-                    receiver: receivers?.find(r => r.id === parcel.receiver) ?? null,
+                    // Explicitly assign all OrderRow fields except 'parcel', then override with full parcel object
+                    id: order.id,
+                    owner: order.owner,
+                    parcel: parcel,
+                    from: order.from,
+                    to: order.to,
+                    started: order.started,
+                    finished: order.finished,
+                    next: order.next,
+                    // Enriched fields
+                    fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
+                    toAddress: addresses?.find((a) => a.id === order.to) ?? null,
+                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
@@ -145,10 +132,7 @@ export default function MyOrdersPage() {
     const markDelivered = async (order: OrderWithParcel) => {
         const finishedAt = new Date().toISOString();
 
-        const { error: orderError } = await supabase
-            .from("orders")
-            .update({ finished: finishedAt })
-            .eq("id", order.id);
+        const { error: orderError } = await supabase.from('orders').update({ finished: finishedAt }).eq('id', order.id);
 
         if (orderError) {
             console.error(orderError);
@@ -156,9 +140,9 @@ export default function MyOrdersPage() {
         }
 
         const { error: parcelError } = await supabase
-            .from("parcels")
-            .update({ status: "DELIVERED" })
-            .eq("id", order.parcel.id);
+            .from('parcels')
+            .update({ status: 'DELIVERED' })
+            .eq('id', order.parcel.id);
 
         if (parcelError) {
             console.error(parcelError);
@@ -166,33 +150,44 @@ export default function MyOrdersPage() {
         }
 
         // update local state
-        setOrders(prev =>
-            prev.map(o =>
-                o.id === order.id
-                    ? { ...o, finished: finishedAt, parcel: { ...o.parcel, status: "DELIVERED" } }
-                    : o
-            )
+        setOrders((prev) =>
+            prev.map((o) => {
+                if (o.id === order.id) {
+                    // Only spread if o.parcel is an object
+                    if (o.parcel && typeof o.parcel === 'object' && !Array.isArray(o.parcel)) {
+                        return {
+                            ...o,
+                            finished: finishedAt,
+                            parcel: { ...o.parcel, status: 'DELIVERED' },
+                        };
+                    } else {
+                        return {
+                            ...o,
+                            finished: finishedAt,
+                        };
+                    }
+                }
+                return o;
+            })
         );
     };
 
     /* ---------- filter ---------- */
-    const visibleOrders = orders.filter(o =>
-        tab === "ACTIVE" ? o.finished === null : o.finished !== null
-    );
+    const visibleOrders = orders.filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null));
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Tabs */}
             <div className="bg-white border-b flex">
                 <button
-                    className={`flex-1 py-2 ${tab === "ACTIVE" && "border-b-2 font-semibold"}`}
-                    onClick={() => setTab("ACTIVE")}
+                    className={`flex-1 py-2 ${tab === 'ACTIVE' && 'border-b-2 font-semibold'}`}
+                    onClick={() => setTab('ACTIVE')}
                 >
                     Active
                 </button>
                 <button
-                    className={`flex-1 py-2 ${tab === "PAST" && "border-b-2 font-semibold"}`}
-                    onClick={() => setTab("PAST")}
+                    className={`flex-1 py-2 ${tab === 'PAST' && 'border-b-2 font-semibold'}`}
+                    onClick={() => setTab('PAST')}
                 >
                     Past
                 </button>
@@ -201,12 +196,10 @@ export default function MyOrdersPage() {
             {/* Orders */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {visibleOrders.length === 0 && (
-                    <div className="text-center text-gray-500 mt-10">
-                        No {tab.toLowerCase()} orders.
-                    </div>
+                    <div className="text-center text-gray-500 mt-10">No {tab.toLowerCase()} orders.</div>
                 )}
 
-                {visibleOrders.map(order => {
+                {visibleOrders.map((order) => {
                     const { parcel, distanceKm, price, co2 } = order;
 
                     return (
@@ -215,15 +208,13 @@ export default function MyOrdersPage() {
                                 {/* Route + receiver */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <span className="font-medium">From:</span>{" "}
-                                        {formatAddress(order.fromAddress)}
+                                        <span className="font-medium">From:</span> {formatAddress(order.fromAddress)}
                                     </div>
                                     <div>
-                                        <span className="font-medium">To:</span>{" "}
-                                        {formatAddress(order.toAddress)}
+                                        <span className="font-medium">To:</span> {formatAddress(order.toAddress)}
                                     </div>
                                     <div>
-                                        <span className="font-medium">Receiver:</span>{" "}
+                                        <span className="font-medium">Receiver:</span>{' '}
                                         {formatReceiver(parcel, order.receiver)}
                                     </div>
                                 </div>
@@ -241,7 +232,7 @@ export default function MyOrdersPage() {
                                             {co2} g CO₂
                                         </div>
 
-                                        {parcel.type !== "NORMAL" && (
+                                        {parcel.type !== 'NORMAL' && (
                                             <div className="flex items-center gap-1 text-orange-600">
                                                 <AlertTriangle className="h-4 w-4" />
                                                 {parcel.type}
@@ -250,11 +241,9 @@ export default function MyOrdersPage() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <div className="font-semibold text-lg">
-                                            €{price.toFixed(2)}
-                                        </div>
+                                        <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
 
-                                        {tab === "ACTIVE" && (
+                                        {tab === 'ACTIVE' && (
                                             <Button size="icon" onClick={() => markDelivered(order)}>
                                                 <Check />
                                             </Button>
