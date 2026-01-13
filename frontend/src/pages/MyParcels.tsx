@@ -5,18 +5,22 @@ import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import { Package, Plus, MapPin, Leaf, Clock, LogOut, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Plus, MapPin, Leaf, Clock, LogOut, AlertTriangle, ShoppingCart } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 
 /* ---------------- types ---------------- */
 type ParcelRow = Database['public']['Tables']['parcels']['Row'];
+type AddressRow = Database['public']['Tables']['addresses']['Row'];
+type UserRow = Database['public']['Tables']['accounts']['Row'];
 
 type ParcelUI = ParcelRow & {
     distanceKm: number;
     eta: string;
     co2: number;
     price: number;
+    toAddress?: AddressRow | null;
+    toReceiver?: UserRow | null;
 };
 
 /* ---------------- mock helpers ---------------- */
@@ -24,6 +28,31 @@ const mockDistanceKm = () => Number((Math.random() * 10 + 0.5).toFixed(1));
 const mockETA = () => `${Math.floor(Math.random() * 3) + 1} days`;
 const mockCO2 = (km: number) => Math.round(km * 120);
 const mockPrice = (km: number, weight: number) => Number((1.5 + km * 0.4 + weight * 0.2).toFixed(2));
+
+// Address display helper
+function formatAddress(address?: any | null) {
+    if (!address) return 'Unknown location';
+
+    const parts = [address.street, address.postcode, address.city, address.country].filter(Boolean);
+
+    if (parts.length > 0) {
+        return parts.join(', ');
+    }
+
+    if (address.lat && address.lng) {
+        return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
+    }
+
+    return 'Unknown location';
+}
+
+// Receiver display helper
+function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
+    if (!parcel.receiver) return 'Unknown receiver';
+    if (!receiver) return 'Unknown receiver';
+
+    return receiver.name ?? receiver.email ?? 'Unknown receiver';
+}
 
 /* ---------------- page ---------------- */
 const MyParcels = () => {
@@ -50,6 +79,14 @@ const MyParcels = () => {
                 return;
             }
 
+            // Filter out nulls for addressIds and receiverIds
+            const addressIds = data.map((p) => p.destination).filter((id): id is string => Boolean(id));
+            const receiverIds = data.map((p) => p.receiver).filter((id): id is string => Boolean(id));
+
+            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
+
+            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
+
             const enriched: ParcelUI[] = data.map((parcel) => {
                 const distanceKm = mockDistanceKm();
                 return {
@@ -58,6 +95,8 @@ const MyParcels = () => {
                     eta: mockETA(),
                     co2: mockCO2(distanceKm),
                     price: mockPrice(distanceKm, parcel.weight),
+                    toAddress: addresses?.find((a) => a.id === parcel.destination) ?? null,
+                    toReceiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
                 };
             });
 
@@ -122,35 +161,45 @@ const MyParcels = () => {
 
                 {visibleParcels.map((parcel) => (
                     <Card key={parcel.id} className="rounded-2xl shadow-sm">
-                        <CardContent className="p-4 flex justify-between items-center">
-                            <div className="flex items-start gap-3">
-                                <Package />
+                        <CardContent className="p-4 space-y-3">
+                            {/* Route + Receiver */}
+                            <div className="text-sm text-gray-700 space-y-1">
                                 <div>
-                                    <div className="font-semibold">€{parcel.price.toFixed(2)}</div>
+                                    <span className="font-medium">To:</span> {formatAddress(parcel.toAddress)}
+                                </div>
+                                <div>
+                                    <span className="font-medium">Receiver:</span>{' '}
+                                    {formatReceiver(parcel, parcel.toReceiver)}
+                                </div>
+                            </div>
 
-                                    <div className="text-sm text-gray-500 flex items-center gap-1">
-                                        <MapPin className="h-3 w-3" />
+                            {/* Metrics row */}
+                            <div className="flex justify-between items-center gap-4 border-t pt-3">
+                                <div className="flex items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4 text-gray-500" />
                                         {parcel.distanceKm} km
                                     </div>
 
-                                    <div className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                        <Leaf className="h-3 w-3" />
-                                        CO₂ saved: {parcel.co2} g
+                                    <div className="flex items-center gap-1 text-green-700">
+                                        <Leaf className="h-4 w-4" />
+                                        {parcel.co2} g CO₂
                                     </div>
 
                                     {parcel.type !== 'NORMAL' && (
-                                        <div className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                            <AlertTriangle className="h-3 w-3" /> {parcel.type}
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'ACTIVE' && (
-                                        <div className="text-xs text-gray-600 flex items-center gap-1 mt-1">
-                                            <Clock className="h-3 w-3" />
-                                            ETA: {parcel.eta}
+                                        <div className="flex items-center gap-1 text-orange-600">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            {parcel.type}
                                         </div>
                                     )}
                                 </div>
+
+                                {activeTab === 'ACTIVE' && (
+                                    <div className="flex items-center gap-3">
+                                        <Clock className="font-semibold text-lg" />
+                                        ETA: {parcel.eta}
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
