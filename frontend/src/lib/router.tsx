@@ -12,6 +12,7 @@ import type { AccountContext } from '@/contexts/AccountContext';
 import Login from '@/pages/Login';
 import Home from '@/pages/Home';
 import Paket from '@/pages/Paket';
+import Orders from '@/pages/Orders';
 
 export type RouterContext = {
     auth: AuthContext;
@@ -60,7 +61,8 @@ const indexRoute = createRoute({
 });
 
 // Routes
-const pages = [{ path: 'paket', component: Paket }] as const;
+const pages = [{ path: 'paket', component: Paket },
+    { path: 'orders', component: Orders}] as const;
 
 // Router
 const routeTree = rootRoute.addChildren([

@@ -1,24 +1,12 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/shadcn/card";
-import { Button } from "@/components/shadcn/button";
-import { Input } from "@/components/shadcn/input";
-import {
-    ShoppingCart,
-    Filter,
-    ArrowUpDown,
-    Package,
-    MapPin,
-    Plus,
-    AlertTriangle,
-    Leaf,
-} from "lucide-react";
+import { Package, MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
-import { Link } from '@tanstack/react-router';
+import { Button } from "@/components/shadcn/button";
+import { Link } from "@tanstack/react-router";
 
-// -----------------------------
-// Types
-// -----------------------------
+/* ---------------- types ---------------- */
 
 type ParcelRow = Database["public"]["Tables"]["parcels"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -35,23 +23,17 @@ type OrderWithParcel = OrderRow & {
     co2: number;
 };
 
-// -----------------------------
-// Mock calculation helpers
-// -----------------------------
+/* ---------------- mock helpers ---------------- */
 
-function calculateDistanceKm(_: ParcelRow): number {
-    return Number((Math.random() * 4.8 + 0.2).toFixed(2));
-}
+const calculateDistanceKm = () =>
+    Number((Math.random() * 4.8 + 0.2).toFixed(2));
 
-function calculatePrice(parcel: ParcelRow, distanceKm: number): number {
-    const base = 1.0;
-    const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
-    return Number((base + distanceKm * 0.4 + weightFactor).toFixed(2));
-}
+const calculatePrice = (parcel: ParcelRow, km: number) =>
+    Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
 
-function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
-    return Math.round(distanceKm * 120);
-}
+const calculateCO2Saved = (_: ParcelRow, km: number) =>
+    Math.round(km * 120);
+
 
 // Address display helper
 function formatAddress(address?: any | null) {
@@ -83,55 +65,44 @@ function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
     return receiver.name ?? receiver.email ?? "Unknown receiver";
 }
 
-// -----------------------------
-// Component
-// -----------------------------
 
-export default function OrderSearchPage() {
-    const [query, setQuery] = useState<string>("");
+/* ---------------- component ---------------- */
+
+export default function MyOrdersPage() {
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [cart, setCart] = useState<OrderWithParcel[]>([]);
-    const [user, setUser] = useState<any>(null); // Current logged-in user
+    const [userId, setUserId] = useState<string | null>(null);
+    const [tab, setTab] = useState<"ACTIVE" | "PAST">("ACTIVE");
 
+    /* ---------- current user ---------- */
     useEffect(() => {
-        const fetchUser = async () => {
-            // get current account from auth
-            const { data: { user: accountUser }, error: accountError } = await supabase.auth.getUser();
-            if (accountError || !accountUser) {
-                console.error("No account logged in:", accountError);
-                return;
-            }
-
-            setUser(accountUser); // store users row
-        };
-
-        fetchUser();
+        supabase.auth.getUser().then(({ data }) => {
+            setUserId(data.user?.id ?? null);
+        });
     }, []);
 
+    /* ---------- fetch orders ---------- */
     useEffect(() => {
+        if (!userId) return;
+
         const fetchOrders = async () => {
-            // fetch orders where owner is NULL
-            const { data: ordersData, error: ordersError } = await supabase
+            const { data: ordersData } = await supabase
                 .from("orders")
                 .select("*")
-                .is("owner", null);
+                .eq("owner", userId);
 
-            if (ordersError || !ordersData) {
-                console.error(ordersError);
+            if (!ordersData || ordersData.length === 0) {
+                setOrders([]);
                 return;
             }
 
-            // fetch all related parcels
-            const parcelIds = ordersData.map((o) => o.parcel);
-            const { data: parcelsData, error: parcelsError } = await supabase
+            const parcelIds = ordersData.map(o => o.parcel);
+
+            const { data: parcelsData } = await supabase
                 .from("parcels")
                 .select("*")
                 .in("id", parcelIds);
 
-            if (parcelsError || !parcelsData) {
-                console.error(parcelsError);
-                return;
-            }
+            if (!parcelsData) return;
 
             const addressIds = ordersData.flatMap(o => [o.from, o.to]).filter(Boolean);
             const receiverIds = parcelsData.map(p => p.receiver).filter(Boolean);
@@ -146,10 +117,9 @@ export default function OrderSearchPage() {
                 .select("*")
                 .in("id", receiverIds);
 
-            // merge orders with parcel info + compute derived fields
-            const enriched: OrderWithParcel[] = ordersData.map((order) => {
-                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm(parcel);
+            const enriched = ordersData.map(order => {
+                const parcel = parcelsData.find(p => p.id === order.parcel)!;
+                const distanceKm = calculateDistanceKm();
                 const price = calculatePrice(parcel, distanceKm);
                 const co2 = calculateCO2Saved(parcel, distanceKm);
 
@@ -169,55 +139,80 @@ export default function OrderSearchPage() {
         };
 
         fetchOrders();
-    }, []);
+    }, [userId]);
 
-    const addToCart = async (order: OrderWithParcel) => {
-        if (!user) {
-            console.warn("No user logged in!");
+    /* ---------- mark delivered ---------- */
+    const markDelivered = async (order: OrderWithParcel) => {
+        const finishedAt = new Date().toISOString();
+
+        const { error: orderError } = await supabase
+            .from("orders")
+            .update({ finished: finishedAt })
+            .eq("id", order.id);
+
+        if (orderError) {
+            console.error(orderError);
             return;
         }
 
-        // update the owner of the order in Supabase
-        const { error } = await supabase
-            .from("orders")
-            .update({ owner: user.id })
-            .eq("id", order.id);
+        const { error: parcelError } = await supabase
+            .from("parcels")
+            .update({ status: "DELIVERED" })
+            .eq("id", order.parcel.id);
 
-        if (error) {
-            console.error(error);
+        if (parcelError) {
+            console.error(parcelError);
             return;
         }
 
         // update local state
-        setCart((prev) => [...prev, order]);
-        setOrders((prev) => prev.filter((o) => o.id !== order.id));
+        setOrders(prev =>
+            prev.map(o =>
+                o.id === order.id
+                    ? { ...o, finished: finishedAt, parcel: { ...o.parcel, status: "DELIVERED" } }
+                    : o
+            )
+        );
     };
+
+    /* ---------- filter ---------- */
+    const visibleOrders = orders.filter(o =>
+        tab === "ACTIVE" ? o.finished === null : o.finished !== null
+    );
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Top bar */}
-            <div className="p-4 bg-white shadow-sm flex items-center gap-2">
-                <Input
-                    placeholder="Where are you going?"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-                <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                    <ArrowUpDown className="h-4 w-4" />
-                </Button>
+            {/* Tabs */}
+            <div className="bg-white border-b flex">
+                <button
+                    className={`flex-1 py-2 ${tab === "ACTIVE" && "border-b-2 font-semibold"}`}
+                    onClick={() => setTab("ACTIVE")}
+                >
+                    Active
+                </button>
+                <button
+                    className={`flex-1 py-2 ${tab === "PAST" && "border-b-2 font-semibold"}`}
+                    onClick={() => setTab("PAST")}
+                >
+                    Past
+                </button>
             </div>
 
-            {/* Order list */}
+            {/* Orders */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {orders.map((order) => {
+                {visibleOrders.length === 0 && (
+                    <div className="text-center text-gray-500 mt-10">
+                        No {tab.toLowerCase()} orders.
+                    </div>
+                )}
+
+                {visibleOrders.map(order => {
                     const { parcel, distanceKm, price, co2 } = order;
+
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
-                                {/* Route + Receiver */}
+                                {/* Route + receiver */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
                                         <span className="font-medium">From:</span>{" "}
@@ -233,9 +228,9 @@ export default function OrderSearchPage() {
                                     </div>
                                 </div>
 
-                                {/* Metrics row */}
+                                {/* Metrics + action */}
                                 <div className="flex justify-between items-center gap-4 border-t pt-3">
-                                    <div className="flex items-center gap-4 text-sm">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm">
                                         <div className="flex items-center gap-1">
                                             <MapPin className="h-4 w-4 text-gray-500" />
                                             {distanceKm} km
@@ -254,12 +249,16 @@ export default function OrderSearchPage() {
                                         )}
                                     </div>
 
-                                    {/* Price + action */}
                                     <div className="flex items-center gap-3">
-                                        <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
-                                        <Button size="icon" onClick={() => addToCart(order)}>
-                                            <Plus />
-                                        </Button>
+                                        <div className="font-semibold text-lg">
+                                            €{price.toFixed(2)}
+                                        </div>
+
+                                        {tab === "ACTIVE" && (
+                                            <Button size="icon" onClick={() => markDelivered(order)}>
+                                                <Check />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -276,14 +275,9 @@ export default function OrderSearchPage() {
                 <Button variant="ghost" asChild>
                     <Link to="/">Home</Link>
                 </Button>
-                <Button variant="ghost" asChild className="relative">
+                <Button variant="ghost" asChild>
                     <Link to="/orders">
                         <ShoppingCart />
-                        {cart.length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2">
-                  {cart.length}
-                </span>
-                        )}
                     </Link>
                 </Button>
             </div>
