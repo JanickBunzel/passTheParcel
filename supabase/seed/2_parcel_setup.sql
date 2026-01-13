@@ -132,7 +132,7 @@ insert into public.orders (
 select
     p.id,
     null,
-    now() - interval '2 days',
+    null,
     null,
     addr_from.id,
     addr_to.id
@@ -152,8 +152,8 @@ insert into public.orders (
 select
     p.id,
     null,
-    now() - interval '5 days',
-    now() - interval '1 day',
+    null,
+    null,
     addr_from.id,
     addr_to.id
 from public.parcels p
