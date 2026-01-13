@@ -11,52 +11,63 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
+          address: string | null
           created_at: string
           email: string
           id: string
           name: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string
           email: string
           id: string
           name?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string
           email?: string
           id?: string
           name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_address_fkey"
+            columns: ["address"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       addresses: {
         Row: {
-          city_name: string
-          coordinates: Json
-          country: string
-          house_number: string
+          city: string | null
+          country: string | null
+          geodata: Json
+          house_number: string | null
           id: string
-          postal_code: string
-          street_name: string
+          postal_code: string | null
+          street: string | null
         }
         Insert: {
-          city_name: string
-          coordinates: Json
-          country: string
-          house_number: string
+          city?: string | null
+          country?: string | null
+          geodata: Json
+          house_number?: string | null
           id?: string
-          postal_code: string
-          street_name: string
+          postal_code?: string | null
+          street?: string | null
         }
         Update: {
-          city_name?: string
-          coordinates?: Json
-          country?: string
-          house_number?: string
+          city?: string | null
+          country?: string | null
+          geodata?: Json
+          house_number?: string | null
           id?: string
-          postal_code?: string
-          street_name?: string
+          postal_code?: string | null
+          street?: string | null
         }
         Relationships: []
       }
@@ -69,7 +80,7 @@ export type Database = {
           owner: string | null
           parcel: string
           started: string | null
-          to: string
+          to: string | null
         }
         Insert: {
           finished?: string | null
@@ -79,7 +90,7 @@ export type Database = {
           owner?: string | null
           parcel: string
           started?: string | null
-          to: string
+          to?: string | null
         }
         Update: {
           finished?: string | null
@@ -89,7 +100,7 @@ export type Database = {
           owner?: string | null
           parcel?: string
           started?: string | null
-          to?: string
+          to?: string | null
         }
         Relationships: [
           {
@@ -110,7 +121,7 @@ export type Database = {
             foreignKeyName: "orders_owner_fkey"
             columns: ["owner"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
@@ -132,36 +143,36 @@ export type Database = {
       parcels: {
         Row: {
           description: string | null
-          destination: string | null
+          destination: string
           id: string
           owner: string
-          receiver: string
+          receiver: string | null
           sender: string
-          size: Json | null
+          status: Database["public"]["Enums"]["parcel_status"]
           type: Database["public"]["Enums"]["parcel_type"]
-          weight: number | null
+          weight: number
         }
         Insert: {
           description?: string | null
-          destination?: string | null
+          destination: string
           id?: string
           owner: string
-          receiver: string
+          receiver?: string | null
           sender: string
-          size?: Json | null
+          status?: Database["public"]["Enums"]["parcel_status"]
           type?: Database["public"]["Enums"]["parcel_type"]
-          weight?: number | null
+          weight: number
         }
         Update: {
           description?: string | null
-          destination?: string | null
+          destination?: string
           id?: string
           owner?: string
-          receiver?: string
+          receiver?: string | null
           sender?: string
-          size?: Json | null
+          status?: Database["public"]["Enums"]["parcel_status"]
           type?: Database["public"]["Enums"]["parcel_type"]
-          weight?: number | null
+          weight?: number
         }
         Relationships: [
           {
@@ -175,57 +186,21 @@ export type Database = {
             foreignKeyName: "parcels_owner_fkey"
             columns: ["owner"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "parcels_receiver_fkey"
             columns: ["receiver"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "parcels_sender_fkey"
             columns: ["sender"]
             isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          account: string
-          address: string
-          id: string
-          type: Database["public"]["Enums"]["user_type"]
-        }
-        Insert: {
-          account?: string
-          address: string
-          id?: string
-          type?: Database["public"]["Enums"]["user_type"]
-        }
-        Update: {
-          account?: string
-          address?: string
-          id?: string
-          type?: Database["public"]["Enums"]["user_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "users_account_fkey"
-            columns: ["account"]
-            isOneToOne: false
             referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_address_fkey"
-            columns: ["address"]
-            isOneToOne: false
-            referencedRelation: "addresses"
             referencedColumns: ["id"]
           },
         ]
@@ -241,8 +216,8 @@ export type Database = {
       }
     }
     Enums: {
+      parcel_status: "AWAITING_DELIVERY" | "IN_DELIVERY" | "DELIVERED"
       parcel_type: "NORMAL" | "FOOD" | "FRAGILE"
-      user_type: "END_USER" | "COURIER" | "DISTRIBUTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -370,8 +345,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      parcel_status: ["AWAITING_DELIVERY", "IN_DELIVERY", "DELIVERED"],
       parcel_type: ["NORMAL", "FOOD", "FRAGILE"],
-      user_type: ["END_USER", "COURIER", "DISTRIBUTOR"],
     },
   },
 } as const

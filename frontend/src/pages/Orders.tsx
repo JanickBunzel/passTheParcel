@@ -55,19 +55,7 @@ export default function MyOrdersPage() {
                 return;
             }
 
-            // get corresponding users row
-            const { data: usersData, error: usersError } = await supabase
-                .from("users")
-                .select("*")
-                .eq("account", accountUser.id)
-                .single();
-
-            if (usersError || !usersData) {
-                console.error("Failed to fetch user row:", usersError);
-                return;
-            }
-
-            setUser(usersData);
+            setUser(accountUser);
         };
 
         fetchCurrentUser();
