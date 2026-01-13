@@ -14,6 +14,7 @@ import MyParcels from '@/pages/MyParcels';
 import Profile from '@/pages/Profile';
 import Delivery from '@/pages/Delivery';
 import Orders from '@/pages/Orders';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 export type RouterContext = {
     auth: AuthContext;
@@ -46,7 +47,7 @@ const authenticatedRoute = createRoute({
         if (context.auth.authLoading) return;
         if (!context.auth.user) throw redirect({ to: '/login' });
     },
-    component: Outlet,
+    component: AuthenticatedLayout,
 });
 
 // Account check

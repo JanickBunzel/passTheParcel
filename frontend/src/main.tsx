@@ -9,6 +9,8 @@ import { RouterProvider } from '@tanstack/react-router';
 import { router } from './lib/router';
 import { Toaster } from 'sonner';
 
+const SHOW_DEVTOOLS = false;
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -35,7 +37,7 @@ createRoot(document.getElementById('root')!).render(
                 </AccountProvider>
             </AuthProvider>
 
-            <ReactQueryDevtools buttonPosition="bottom-right" />
+            {SHOW_DEVTOOLS && <ReactQueryDevtools buttonPosition="bottom-right" />}
             <Toaster position="bottom-right" />
         </QueryClientProvider>
     </StrictMode>
