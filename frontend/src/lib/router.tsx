@@ -10,8 +10,9 @@ import type { AuthContext } from '@/contexts/AuthContext';
 import type { AccountContext } from '@/contexts/AccountContext';
 
 import Login from '@/pages/Login';
-import Home from '@/pages/Home';
-import Paket from '@/pages/Paket';
+import MyParcels from '@/pages/MyParcels';
+import Profile from '@/pages/Profile';
+import Delivery from '@/pages/Delivery';
 import Orders from '@/pages/Orders';
 
 export type RouterContext = {
@@ -57,12 +58,16 @@ const indexRoute = createRoute({
 
         if (!context.account.account) throw redirect({ to: '/login' });
     },
-    component: Home,
+    component: MyParcels,
 });
 
 // Routes
-const pages = [{ path: 'paket', component: Paket },
-    { path: 'orders', component: Orders}] as const;
+const pages = [
+    { path: 'orders', component: Orders },
+    { path: 'delivery', component: Delivery },
+    { path: 'myParcels', component: MyParcels },
+    { path: 'profile', component: Profile },
+] as const;
 
 // Router
 const routeTree = rootRoute.addChildren([

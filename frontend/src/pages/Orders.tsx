@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
-import { MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from 'lucide-react';
+import { Button } from '@/components/shadcn/button';
+import { Input } from '@/components/shadcn/input';
+import { ShoppingCart, Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
-import { Button } from '@/components/shadcn/button';
 import { Link } from '@tanstack/react-router';
 
-/* ---------------- types ---------------- */
+// -----------------------------
+// Types
+// -----------------------------
 
 type ParcelRow = Database['public']['Tables']['parcels']['Row'];
 type OrderRow = Database['public']['Tables']['orders']['Row'];
@@ -23,13 +26,23 @@ type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
     co2: number;
 };
 
-/* ---------------- mock helpers ---------------- */
+// -----------------------------
+// Mock calculation helpers
+// -----------------------------
 
-const calculateDistanceKm = () => Number((Math.random() * 4.8 + 0.2).toFixed(2));
+function calculateDistanceKm(_: ParcelRow): number {
+    return Number((Math.random() * 4.8 + 0.2).toFixed(2));
+}
 
-const calculatePrice = (parcel: ParcelRow, km: number) => Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
+function calculatePrice(parcel: ParcelRow, distanceKm: number): number {
+    const base = 1.0;
+    const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
+    return Number((base + distanceKm * 0.4 + weightFactor).toFixed(2));
+}
 
-const calculateCO2Saved = (_: ParcelRow, km: number) => Math.round(km * 120);
+function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
+    return Math.round(distanceKm * 120);
+}
 
 // Address display helper
 function formatAddress(address?: any | null) {
@@ -56,37 +69,58 @@ function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
     return receiver.name ?? receiver.email ?? 'Unknown receiver';
 }
 
-/* ---------------- component ---------------- */
+// -----------------------------
+// Component
+// -----------------------------
 
-export default function MyOrdersPage() {
+export default function Orders() {
+    const [query, setQuery] = useState<string>('');
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [userId, setUserId] = useState<string | null>(null);
-    const [tab, setTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
+    const [cart, setCart] = useState<OrderWithParcel[]>([]);
+    const [user, setUser] = useState<any>(null); // Current logged-in user
 
-    /* ---------- current user ---------- */
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            setUserId(data.user?.id ?? null);
-        });
-    }, []);
-
-    /* ---------- fetch orders ---------- */
-    useEffect(() => {
-        if (!userId) return;
-
-        const fetchOrders = async () => {
-            const { data: ordersData } = await supabase.from('orders').select('*').eq('owner', userId);
-
-            if (!ordersData || ordersData.length === 0) {
-                setOrders([]);
+        const fetchUser = async () => {
+            // get current account from auth
+            const {
+                data: { user: accountUser },
+                error: accountError,
+            } = await supabase.auth.getUser();
+            if (accountError || !accountUser) {
+                console.error('No account logged in:', accountError);
                 return;
             }
 
+            setUser(accountUser); // store users row
+        };
+
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            // fetch orders where owner is NULL
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('*')
+                .is('owner', null);
+
+            if (ordersError || !ordersData) {
+                console.error(ordersError);
+                return;
+            }
+
+            // fetch all related parcels
             const parcelIds = ordersData.map((o) => o.parcel);
+            const { data: parcelsData, error: parcelsError } = await supabase
+                .from('parcels')
+                .select('*')
+                .in('id', parcelIds);
 
-            const { data: parcelsData } = await supabase.from('parcels').select('*').in('id', parcelIds);
-
-            if (!parcelsData) return;
+            if (parcelsError || !parcelsData) {
+                console.error(parcelsError);
+                return;
+            }
 
             // Filter out nulls for addressIds and receiverIds
             const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
@@ -96,23 +130,16 @@ export default function MyOrdersPage() {
 
             const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
 
+            // merge orders with parcel info + compute derived fields
             const enriched: OrderWithParcel[] = ordersData.map((order) => {
                 const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm();
+                const distanceKm = calculateDistanceKm(parcel);
                 const price = calculatePrice(parcel, distanceKm);
                 const co2 = calculateCO2Saved(parcel, distanceKm);
 
                 return {
-                    // Explicitly assign all OrderRow fields except 'parcel', then override with full parcel object
-                    id: order.id,
-                    owner: order.owner,
-                    parcel: parcel,
-                    from: order.from,
-                    to: order.to,
-                    started: order.started,
-                    finished: order.finished,
-                    next: order.next,
-                    // Enriched fields
+                    ...order,
+                    parcel,
                     fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
                     toAddress: addresses?.find((a) => a.id === order.to) ?? null,
                     receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
@@ -126,86 +153,48 @@ export default function MyOrdersPage() {
         };
 
         fetchOrders();
-    }, [userId]);
+    }, []);
 
-    /* ---------- mark delivered ---------- */
-    const markDelivered = async (order: OrderWithParcel) => {
-        const finishedAt = new Date().toISOString();
-
-        const { error: orderError } = await supabase.from('orders').update({ finished: finishedAt }).eq('id', order.id);
-
-        if (orderError) {
-            console.error(orderError);
+    const addToCart = async (order: OrderWithParcel) => {
+        if (!user) {
+            console.warn('No user logged in!');
             return;
         }
 
-        const { error: parcelError } = await supabase
-            .from('parcels')
-            .update({ status: 'DELIVERED' })
-            .eq('id', order.parcel.id);
+        // update the owner of the order in Supabase
+        const { error } = await supabase.from('orders').update({ owner: user.id }).eq('id', order.id);
 
-        if (parcelError) {
-            console.error(parcelError);
+        if (error) {
+            console.error(error);
             return;
         }
 
         // update local state
-        setOrders((prev) =>
-            prev.map((o) => {
-                if (o.id === order.id) {
-                    // Only spread if o.parcel is an object
-                    if (o.parcel && typeof o.parcel === 'object' && !Array.isArray(o.parcel)) {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                            parcel: { ...o.parcel, status: 'DELIVERED' },
-                        };
-                    } else {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                        };
-                    }
-                }
-                return o;
-            })
-        );
+        setCart((prev) => [...prev, order]);
+        setOrders((prev) => prev.filter((o) => o.id !== order.id));
     };
-
-    /* ---------- filter ---------- */
-    const visibleOrders = orders.filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null));
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Tabs */}
-            <div className="bg-white border-b flex">
-                <button
-                    className={`flex-1 py-2 ${tab === 'ACTIVE' && 'border-b-2 font-semibold'}`}
-                    onClick={() => setTab('ACTIVE')}
-                >
-                    Active
-                </button>
-                <button
-                    className={`flex-1 py-2 ${tab === 'PAST' && 'border-b-2 font-semibold'}`}
-                    onClick={() => setTab('PAST')}
-                >
-                    Past
-                </button>
+            {/* Top bar */}
+            <div className="p-4 bg-white shadow-sm flex items-center gap-2">
+                <Input placeholder="Where are you going?" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon">
+                    <ArrowUpDown className="h-4 w-4" />
+                </Button>
             </div>
 
-            {/* Orders */}
+            {/* Order list */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {visibleOrders.length === 0 && (
-                    <div className="text-center text-gray-500 mt-10">No {tab.toLowerCase()} orders.</div>
-                )}
-
-                {visibleOrders.map((order) => {
+                {orders.map((order) => {
                     const { parcel, distanceKm, price, co2 } = order;
-
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
-                                {/* Route + receiver */}
+                                {/* Route + Receiver */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
                                         <span className="font-medium">From:</span> {formatAddress(order.fromAddress)}
@@ -219,9 +208,9 @@ export default function MyOrdersPage() {
                                     </div>
                                 </div>
 
-                                {/* Metrics + action */}
+                                {/* Metrics row */}
                                 <div className="flex justify-between items-center gap-4 border-t pt-3">
-                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-4 text-sm">
                                         <div className="flex items-center gap-1">
                                             <MapPin className="h-4 w-4 text-gray-500" />
                                             {distanceKm} km
@@ -240,14 +229,12 @@ export default function MyOrdersPage() {
                                         )}
                                     </div>
 
+                                    {/* Price + action */}
                                     <div className="flex items-center gap-3">
                                         <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
-
-                                        {tab === 'ACTIVE' && (
-                                            <Button size="icon" onClick={() => markDelivered(order)}>
-                                                <Check />
-                                            </Button>
-                                        )}
+                                        <Button size="icon" onClick={() => addToCart(order)}>
+                                            <Plus />
+                                        </Button>
                                     </div>
                                 </div>
                             </CardContent>
@@ -259,14 +246,19 @@ export default function MyOrdersPage() {
             {/* Bottom navigation */}
             <div className="bg-white border-t p-3 flex justify-around">
                 <Button variant="ghost" asChild>
-                    <Link to="/paket">Search</Link>
+                    <Link to="/orders">Search</Link>
                 </Button>
                 <Button variant="ghost" asChild>
                     <Link to="/">Home</Link>
                 </Button>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild className="relative">
                     <Link to="/orders">
                         <ShoppingCart />
+                        {cart.length > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2">
+                                {cart.length}
+                            </span>
+                        )}
                     </Link>
                 </Button>
             </div>
