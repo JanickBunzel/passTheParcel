@@ -255,21 +255,6 @@ export default function Delivery() {
                     );
                 })}
             </div>
-
-            {/* Bottom navigation */}
-            <div className="bg-white border-t p-3 flex justify-around">
-                <Button variant="ghost" asChild>
-                    <Link to="/orders">Search</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                    <Link to="/">Home</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                    <Link to="/orders">
-                        <ShoppingCart />
-                    </Link>
-                </Button>
-            </div>
         </div>
     );
 }

@@ -206,21 +206,6 @@ const MyParcels = () => {
                 ))}
             </div>
 
-            {/* Bottom navigation */}
-            <div className="bg-white border-t p-3 flex justify-around">
-                <Button variant="ghost" asChild>
-                    <Link to="/orders">Search</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                    <Link to="/">MyParcels</Link>
-                </Button>
-                <Button variant="ghost" asChild className="relative">
-                    <Link to="/delivery">
-                        <ShoppingCart />
-                    </Link>
-                </Button>
-            </div>
-
             {account?.id && (
                 <CreateParcelModal
                     open={createOpen}

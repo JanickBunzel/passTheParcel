@@ -242,26 +242,6 @@ export default function Orders() {
                     );
                 })}
             </div>
-
-            {/* Bottom navigation */}
-            <div className="bg-white border-t p-3 flex justify-around">
-                <Button variant="ghost" asChild>
-                    <Link to="/orders">Search</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                    <Link to="/">Home</Link>
-                </Button>
-                <Button variant="ghost" asChild className="relative">
-                    <Link to="/orders">
-                        <ShoppingCart />
-                        {cart.length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2">
-                                {cart.length}
-                            </span>
-                        )}
-                    </Link>
-                </Button>
-            </div>
         </div>
     );
 }
