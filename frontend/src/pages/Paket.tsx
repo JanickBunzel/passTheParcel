@@ -22,9 +22,14 @@ import { Link } from '@tanstack/react-router';
 
 type ParcelRow = Database["public"]["Tables"]["parcels"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
+type AddressRow = Database["public"]["Tables"]["addresses"]["Row"];
+type UserRow = Database["public"]["Tables"]["accounts"]["Row"];
 
 type OrderWithParcel = OrderRow & {
     parcel: ParcelRow;
+    fromAddress?: AddressRow | null;
+    toAddress?: AddressRow | null;
+    receiver?: UserRow | null;
     distanceKm: number;
     price: number;
     co2: number;
@@ -46,6 +51,36 @@ function calculatePrice(parcel: ParcelRow, distanceKm: number): number {
 
 function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
     return Math.round(distanceKm * 120);
+}
+
+// Address display helper
+function formatAddress(address?: any | null) {
+    if (!address) return "Unknown location";
+
+    const parts = [
+        address.street,
+        address.postcode,
+        address.city,
+        address.country,
+    ].filter(Boolean);
+
+    if (parts.length > 0) {
+        return parts.join(", ");
+    }
+
+    if (address.lat && address.lng) {
+        return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
+    }
+
+    return "Unknown location";
+}
+
+// Receiver display helper
+function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
+    if (!parcel.receiver) return "Unknown receiver";
+    if (!receiver) return "Unknown receiver";
+
+    return receiver.name ?? receiver.email ?? "Unknown receiver";
 }
 
 // -----------------------------
@@ -98,6 +133,19 @@ export default function OrderSearchPage() {
                 return;
             }
 
+            const addressIds = ordersData.flatMap(o => [o.from, o.to]).filter(Boolean);
+            const receiverIds = parcelsData.map(p => p.receiver).filter(Boolean);
+
+            const { data: addresses } = await supabase
+                .from("addresses")
+                .select("*")
+                .in("id", addressIds);
+
+            const { data: receivers } = await supabase
+                .from("accounts") // or "accounts"
+                .select("*")
+                .in("id", receiverIds);
+
             // merge orders with parcel info + compute derived fields
             const enriched: OrderWithParcel[] = ordersData.map((order) => {
                 const parcel = parcelsData.find((p) => p.id === order.parcel)!;
@@ -108,6 +156,9 @@ export default function OrderSearchPage() {
                 return {
                     ...order,
                     parcel,
+                    fromAddress: addresses?.find(a => a.id === order.from) ?? null,
+                    toAddress: addresses?.find(a => a.id === order.to) ?? null,
+                    receiver: receivers?.find(r => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
@@ -165,31 +216,52 @@ export default function OrderSearchPage() {
                     const { parcel, distanceKm, price, co2 } = order;
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
-                            <CardContent className="flex items-center justify-between p-4">
-                                <div className="flex items-center gap-3">
-                                    <Package />
+                            <CardContent className="p-4 space-y-3">
+                                {/* Route + Receiver */}
+                                <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <div className="font-semibold">€{price.toFixed(2)}</div>
-
-                                        <div className="text-sm text-gray-500 flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" /> {distanceKm} km
-                                        </div>
-
-                                        <div className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                            <Leaf className="h-3 w-3" /> CO₂ saved: {co2} g
-                                        </div>
-
-                                        {parcel.type !== "NORMAL" && (
-                                            <div className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                                <AlertTriangle className="h-3 w-3" /> {parcel.type}
-                                            </div>
-                                        )}
+                                        <span className="font-medium">From:</span>{" "}
+                                        {formatAddress(order.fromAddress)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">To:</span>{" "}
+                                        {formatAddress(order.toAddress)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">Receiver:</span>{" "}
+                                        {formatReceiver(parcel, order.receiver)}
                                     </div>
                                 </div>
 
-                                <Button size="icon" onClick={() => addToCart(order)}>
-                                    <Plus />
-                                </Button>
+                                {/* Metrics row */}
+                                <div className="flex justify-between items-center gap-4 border-t pt-3">
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-1">
+                                            <MapPin className="h-4 w-4 text-gray-500" />
+                                            {distanceKm} km
+                                        </div>
+
+                                        <div className="flex items-center gap-1 text-green-700">
+                                            <Leaf className="h-4 w-4" />
+                                            {co2} g CO₂
+                                        </div>
+
+                                        {parcel.type !== "NORMAL" && (
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                {parcel.type}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Price + action */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
+                                        <Button size="icon" onClick={() => addToCart(order)}>
+                                            <Plus />
+                                        </Button>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     );

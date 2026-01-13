@@ -1,103 +1,134 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/shadcn/card";
-import { Package, MapPin, Leaf, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Package, MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
-import { Button } from '@/components/shadcn/button.tsx';
-import { Link } from '@tanstack/react-router';
+import { Button } from "@/components/shadcn/button";
+import { Link } from "@tanstack/react-router";
 
-// -----------------------------
-// Types
-// -----------------------------
+/* ---------------- types ---------------- */
 
 type ParcelRow = Database["public"]["Tables"]["parcels"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
+type AddressRow = Database["public"]["Tables"]["addresses"]["Row"];
+type UserRow = Database["public"]["Tables"]["accounts"]["Row"];
 
 type OrderWithParcel = OrderRow & {
     parcel: ParcelRow;
+    fromAddress?: AddressRow | null;
+    toAddress?: AddressRow | null;
+    receiver?: UserRow | null;
     distanceKm: number;
     price: number;
     co2: number;
 };
 
-// -----------------------------
-// Mock calculation helpers
-// -----------------------------
+/* ---------------- mock helpers ---------------- */
 
-function calculateDistanceKm(_: ParcelRow): number {
-    return Number((Math.random() * 4.8 + 0.2).toFixed(2));
+const calculateDistanceKm = () =>
+    Number((Math.random() * 4.8 + 0.2).toFixed(2));
+
+const calculatePrice = (parcel: ParcelRow, km: number) =>
+    Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
+
+const calculateCO2Saved = (_: ParcelRow, km: number) =>
+    Math.round(km * 120);
+
+
+// Address display helper
+function formatAddress(address?: any | null) {
+    if (!address) return "Unknown location";
+
+    const parts = [
+        address.street,
+        address.postcode,
+        address.city,
+        address.country,
+    ].filter(Boolean);
+
+    if (parts.length > 0) {
+        return parts.join(", ");
+    }
+
+    if (address.lat && address.lng) {
+        return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
+    }
+
+    return "Unknown location";
 }
 
-function calculatePrice(parcel: ParcelRow, distanceKm: number): number {
-    const base = 1.0;
-    const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
-    return Number((base + distanceKm * 0.4 + weightFactor).toFixed(2));
+// Receiver display helper
+function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
+    if (!parcel.receiver) return "Unknown receiver";
+    if (!receiver) return "Unknown receiver";
+
+    return receiver.name ?? receiver.email ?? "Unknown receiver";
 }
 
-function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
-    return Math.round(distanceKm * 120);
-}
 
-// -----------------------------
-// Component
-// -----------------------------
+/* ---------------- component ---------------- */
 
 export default function MyOrdersPage() {
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [user, setUser] = useState<any>(null); // users row
+    const [userId, setUserId] = useState<string | null>(null);
+    const [tab, setTab] = useState<"ACTIVE" | "PAST">("ACTIVE");
 
+    /* ---------- current user ---------- */
     useEffect(() => {
-        const fetchCurrentUser = async () => {
-            // get logged-in account
-            const { data: { user: accountUser }, error: accountError } = await supabase.auth.getUser();
-            if (accountError || !accountUser) {
-                console.error("No account logged in:", accountError);
-                return;
-            }
-
-            setUser(accountUser);
-        };
-
-        fetchCurrentUser();
+        supabase.auth.getUser().then(({ data }) => {
+            setUserId(data.user?.id ?? null);
+        });
     }, []);
 
+    /* ---------- fetch orders ---------- */
     useEffect(() => {
-        const fetchOrders = async () => {
-            if (!user) return;
+        if (!userId) return;
 
-            // fetch orders owned by current user
-            const { data: ordersData, error: ordersError } = await supabase
+        const fetchOrders = async () => {
+            const { data: ordersData } = await supabase
                 .from("orders")
                 .select("*")
-                .eq("owner", user.id);
+                .eq("owner", userId);
 
-            if (ordersError || !ordersData) {
-                console.error("Failed to fetch orders:", ordersError);
+            if (!ordersData || ordersData.length === 0) {
+                setOrders([]);
                 return;
             }
 
-            // fetch all related parcels
-            const parcelIds = ordersData.map((o) => o.parcel);
-            const { data: parcelsData, error: parcelsError } = await supabase
+            const parcelIds = ordersData.map(o => o.parcel);
+
+            const { data: parcelsData } = await supabase
                 .from("parcels")
                 .select("*")
                 .in("id", parcelIds);
 
-            if (parcelsError || !parcelsData) {
-                console.error("Failed to fetch parcels:", parcelsError);
-                return;
-            }
+            if (!parcelsData) return;
 
-            // merge orders with parcel info + compute derived fields
-            const enriched: OrderWithParcel[] = ordersData.map((order) => {
-                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm(parcel);
+            const addressIds = ordersData.flatMap(o => [o.from, o.to]).filter(Boolean);
+            const receiverIds = parcelsData.map(p => p.receiver).filter(Boolean);
+
+            const { data: addresses } = await supabase
+                .from("addresses")
+                .select("*")
+                .in("id", addressIds);
+
+            const { data: receivers } = await supabase
+                .from("accounts") // or "accounts"
+                .select("*")
+                .in("id", receiverIds);
+
+            const enriched = ordersData.map(order => {
+                const parcel = parcelsData.find(p => p.id === order.parcel)!;
+                const distanceKm = calculateDistanceKm();
                 const price = calculatePrice(parcel, distanceKm);
                 const co2 = calculateCO2Saved(parcel, distanceKm);
 
                 return {
                     ...order,
                     parcel,
+                    fromAddress: addresses?.find(a => a.id === order.from) ?? null,
+                    toAddress: addresses?.find(a => a.id === order.to) ?? null,
+                    receiver: receivers?.find(r => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
@@ -108,40 +139,125 @@ export default function MyOrdersPage() {
         };
 
         fetchOrders();
-    }, [user]);
+    }, [userId]);
+
+    /* ---------- mark delivered ---------- */
+    const markDelivered = async (order: OrderWithParcel) => {
+        const finishedAt = new Date().toISOString();
+
+        const { error: orderError } = await supabase
+            .from("orders")
+            .update({ finished: finishedAt })
+            .eq("id", order.id);
+
+        if (orderError) {
+            console.error(orderError);
+            return;
+        }
+
+        const { error: parcelError } = await supabase
+            .from("parcels")
+            .update({ status: "DELIVERED" })
+            .eq("id", order.parcel.id);
+
+        if (parcelError) {
+            console.error(parcelError);
+            return;
+        }
+
+        // update local state
+        setOrders(prev =>
+            prev.map(o =>
+                o.id === order.id
+                    ? { ...o, finished: finishedAt, parcel: { ...o.parcel, status: "DELIVERED" } }
+                    : o
+            )
+        );
+    };
+
+    /* ---------- filter ---------- */
+    const visibleOrders = orders.filter(o =>
+        tab === "ACTIVE" ? o.finished === null : o.finished !== null
+    );
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Scrollable content */}
+            {/* Tabs */}
+            <div className="bg-white border-b flex">
+                <button
+                    className={`flex-1 py-2 ${tab === "ACTIVE" && "border-b-2 font-semibold"}`}
+                    onClick={() => setTab("ACTIVE")}
+                >
+                    Active
+                </button>
+                <button
+                    className={`flex-1 py-2 ${tab === "PAST" && "border-b-2 font-semibold"}`}
+                    onClick={() => setTab("PAST")}
+                >
+                    Past
+                </button>
+            </div>
+
+            {/* Orders */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {orders.length === 0 && (
+                {visibleOrders.length === 0 && (
                     <div className="text-center text-gray-500 mt-10">
-                        You haven’t taken any orders yet.
+                        No {tab.toLowerCase()} orders.
                     </div>
                 )}
 
-                {orders.map((order) => {
+                {visibleOrders.map(order => {
                     const { parcel, distanceKm, price, co2 } = order;
+
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
-                            <CardContent className="flex items-center justify-between p-4">
-                                <div className="flex items-center gap-3">
-                                    <Package />
+                            <CardContent className="p-4 space-y-3">
+                                {/* Route + receiver */}
+                                <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <div className="font-semibold">€{price.toFixed(2)}</div>
+                                        <span className="font-medium">From:</span>{" "}
+                                        {formatAddress(order.fromAddress)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">To:</span>{" "}
+                                        {formatAddress(order.toAddress)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">Receiver:</span>{" "}
+                                        {formatReceiver(parcel, order.receiver)}
+                                    </div>
+                                </div>
 
-                                        <div className="text-sm text-gray-500 flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" /> {distanceKm} km
+                                {/* Metrics + action */}
+                                <div className="flex justify-between items-center gap-4 border-t pt-3">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-1">
+                                            <MapPin className="h-4 w-4 text-gray-500" />
+                                            {distanceKm} km
                                         </div>
 
-                                        <div className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                            <Leaf className="h-3 w-3" /> CO₂ saved: {co2} g
+                                        <div className="flex items-center gap-1 text-green-700">
+                                            <Leaf className="h-4 w-4" />
+                                            {co2} g CO₂
                                         </div>
 
                                         {parcel.type !== "NORMAL" && (
-                                            <div className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                                <AlertTriangle className="h-3 w-3" /> {parcel.type}
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                {parcel.type}
                                             </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="font-semibold text-lg">
+                                            €{price.toFixed(2)}
+                                        </div>
+
+                                        {tab === "ACTIVE" && (
+                                            <Button size="icon" onClick={() => markDelivered(order)}>
+                                                <Check />
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
@@ -159,7 +275,7 @@ export default function MyOrdersPage() {
                 <Button variant="ghost" asChild>
                     <Link to="/">Home</Link>
                 </Button>
-                <Button variant="ghost" asChild className="relative">
+                <Button variant="ghost" asChild>
                     <Link to="/orders">
                         <ShoppingCart />
                     </Link>
