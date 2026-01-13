@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
-import { MapPin, Leaf, AlertTriangle, ShoppingCart, Check } from 'lucide-react';
+import { MapPin, Leaf, AlertTriangle, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
 import { Button } from '@/components/shadcn/button';
-import { Link } from '@tanstack/react-router';
 
 /* ---------------- types ---------------- */
 

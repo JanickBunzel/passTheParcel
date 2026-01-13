@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/shadcn/button';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import { Plus, MapPin, Leaf, Clock, LogOut, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Plus, MapPin, Leaf, Clock, LogOut, AlertTriangle } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 

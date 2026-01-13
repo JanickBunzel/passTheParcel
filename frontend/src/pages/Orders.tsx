@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { Button } from '@/components/shadcn/button';
 import { Input } from '@/components/shadcn/input';
-import { ShoppingCart, Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf } from 'lucide-react';
+import { Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
-import { Link } from '@tanstack/react-router';
 
 // -----------------------------
 // Types
@@ -76,7 +75,6 @@ function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
 export default function Orders() {
     const [query, setQuery] = useState<string>('');
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [cart, setCart] = useState<OrderWithParcel[]>([]);
     const [user, setUser] = useState<any>(null); // Current logged-in user
 
     useEffect(() => {
@@ -170,7 +168,6 @@ export default function Orders() {
         }
 
         // update local state
-        setCart((prev) => [...prev, order]);
         setOrders((prev) => prev.filter((o) => o.id !== order.id));
     };
 
