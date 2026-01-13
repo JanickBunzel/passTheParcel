@@ -18,7 +18,7 @@ const TopBar = () => {
         : null;
 
     return (
-        <div className="w-full border-b p-4 flex gap-4 items-center justify-between bg-white">
+        <div className="w-full border-b px-4 py-2 flex gap-4 items-center justify-between bg-white">
             <Button asChild variant="ghost" className="px-0! flex gap-2 items-center">
                 <Link to="/profile">
                     <Avatar className="size-8">
@@ -30,8 +30,8 @@ const TopBar = () => {
                 </Link>
             </Button>
 
-            <Button size="icon" variant="outline" onClick={openLogoutModal}>
-                <LogOut />
+            <Button size="sm" variant="outline" onClick={openLogoutModal}>
+                <LogOut className="size-3.5" />
             </Button>
         </div>
     );
