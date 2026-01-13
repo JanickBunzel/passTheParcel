@@ -1,7 +1,9 @@
-import { Map as MapLibre, type MapRef, Marker } from '@vis.gl/react-maplibre';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/shadcn/button';
 import { Locate, MapPin, ZoomIn, ZoomOut } from 'lucide-react';
-import { useRef } from 'react';
+import { Map as MapLibre, type MapRef, Marker } from '@vis.gl/react-maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { cn } from '@/lib/utils';
 
 const MOCKED_PARCELS = [
     {
@@ -28,6 +30,7 @@ const MOCKED_PARCELS = [
 
 const Map = () => {
     const mapRef = useRef<MapRef | null>(null);
+    const [mapLoaded, setMapLoaded] = useState(false);
 
     const parcels = MOCKED_PARCELS;
 
@@ -55,6 +58,16 @@ const Map = () => {
         ];
         map.fitBounds(bounds, { padding: 80, duration: 800 });
     };
+
+    const zoomed = useRef(false);
+    useEffect(() => {
+        if (zoomed.current || !mapLoaded) return;
+        const t = setTimeout(() => {
+            zoomed.current = true;
+            zoomOnParcels();
+        }, 350);
+        return () => clearTimeout(t);
+    }, [parcels, mapLoaded]);
 
     const MAX_ZOOM = 24;
     const MIN_ZOOM = 0;
@@ -85,12 +98,13 @@ const Map = () => {
 
             <MapLibre
                 ref={mapRef}
+                onLoad={() => setMapLoaded(true)}
                 initialViewState={{
                     latitude: 48.137154,
                     longitude: 11.576124,
-                    zoom: 13,
+                    zoom: 6,
                 }}
-                style={{ width: '100%', height: '100%', borderRadius: '8px' }}
+                style={{ width: '100%', height: '100%' }}
                 mapStyle="https://api.maptiler.com/maps/basic-v2/style.json?key=IXFb3VpnbYogHluMPMN7"
                 attributionControl={false}
             >
