@@ -15,6 +15,7 @@ import Profile from '@/pages/Profile';
 import Delivery from '@/pages/Delivery';
 import Orders from '@/pages/Orders';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import Map from '@/pages/Map';
 
 export type RouterContext = {
     auth: AuthContext;
@@ -68,6 +69,7 @@ const pages = [
     { path: 'delivery', component: Delivery },
     { path: 'myParcels', component: MyParcels },
     { path: 'profile', component: Profile },
+    { path: 'map', component: Map },
 ] as const;
 
 // Router

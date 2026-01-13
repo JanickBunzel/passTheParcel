@@ -1,9 +1,10 @@
 import { Link, useRouter } from '@tanstack/react-router';
-import { Container, Package, Route, type LucideIcon } from 'lucide-react';
+import { Container, Map, Package, Route, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 
 const navBarItems: NavBarItem[] = [
+    { path: '/map', name: 'Map', icon: Map },
     { path: '/orders', name: 'Orders', icon: Route },
     { path: '/', name: 'My Parcels', icon: Package },
     { path: '/delivery', name: 'Delivery', icon: Container },
@@ -29,13 +30,13 @@ const Navbar = () => {
     const getIsActive = useCallback((path: string) => currentPath === path, [currentPath]);
 
     return (
-        <div className="w-full border-t p-4 flex gap-4 items-center justify-around bg-white">
+        <div className="w-full border-t px-2 py-3 flex gap-2 items-center justify-around bg-white">
             {navBarItems.map(({ path, name, icon: Icon }) => (
                 <Link
                     key={path}
                     to={path}
                     className={cn(
-                        'flex flex-col gap-1 items-center justify-center mx-4 text-sm w-full',
+                        'flex flex-col gap-1.5 items-center justify-center text-sm text-center w-full',
                         getIsActive(path) && 'text-primary'
                     )}
                 >
