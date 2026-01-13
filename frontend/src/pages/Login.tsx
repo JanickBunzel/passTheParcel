@@ -52,7 +52,7 @@ const Login = () => {
     return (
         <div className="h-screen flex flex-col gap-10 items-center justify-center px-4 sm:px-0 pb-24">
             {(isDev || SHOW_TEST_USER_LOGINS) && (
-                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 flex-wrap">
                     {TEST_USERS.map((user) => (
                         <Button
                             key={user.label}
@@ -68,7 +68,7 @@ const Login = () => {
                 </div>
             )}
 
-            <h1 className="mb-8 uppercase text-primary text-4xl font-bold">Pass The Parcel</h1>
+            <h1 className="mb-8 uppercase text-primary text-center text-4xl font-bold">Pass The Parcel</h1>
 
             <Card className="sm:w-96 shadow-md py-6 px-0 gap-2 rounded-xl">
                 <CardHeader className="text-center">
