@@ -175,7 +175,7 @@ export default function Delivery() {
     const visibleOrders = orders.filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null));
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex flex-col">
             {/* Tabs */}
             <div className="bg-white border-b flex">
                 <button

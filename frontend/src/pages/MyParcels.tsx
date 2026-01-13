@@ -112,7 +112,7 @@ const MyParcels = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex flex-col">
             {/* Header */}
             <div className="p-4 bg-white shadow-sm flex items-center justify-between">
                 <div>

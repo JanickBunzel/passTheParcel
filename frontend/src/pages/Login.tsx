@@ -52,7 +52,7 @@ const Login = () => {
     return (
         <div className="h-screen flex flex-col gap-10 items-center justify-center px-4 sm:px-0 pb-24">
             {(isDev || SHOW_TEST_USER_LOGINS) && (
-                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 flex-wrap">
+                <div className="fixed bottom-4 left-0 w-full flex gap-2 flex-wrap justify-center">
                     {TEST_USERS.map((user) => (
                         <Button
                             key={user.label}

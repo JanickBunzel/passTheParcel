@@ -172,7 +172,7 @@ export default function Orders() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex flex-col">
             {/* Top bar */}
             <div className="p-4 bg-white shadow-sm flex items-center gap-2">
                 <Input placeholder="Where are you going?" value={query} onChange={(e) => setQuery(e.target.value)} />
