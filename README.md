@@ -52,9 +52,12 @@ Here users can find detailed information about the parcels which need to be deli
 
 When the users decide to want to deliver the package they need to click on the green plus.
 
+![Orders](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/OrdersPassTheParcel.png)
+
 # Delivery
 
-Once collected, the parcel is then displayed under the “Active”-section of the delivery button and once the parcel is delivered the user needs to check the green button again. Then the parcel moves to the “Past”-section.
+**Once collected**, the parcel is then displayed under the **“Active”-section** and **when** the parcel is **delivered** the **user** needs to **check the green button**. 
+Then the **parcel** moves to the **“Past”-section**.
 
 # My Parcels
 
