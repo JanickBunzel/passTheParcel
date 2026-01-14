@@ -9,7 +9,6 @@ Supervisors: Klaus Müller (City of Munich), Prof. Dr. Jürgen Pfeffer (TUM), Ja
 Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
 
 ## 📋 Table of Contents
-- [About the Project](#-about-the-project)
 - [Problem and Background](#-problem-and-background-of-the-project)
 - [Key Features](#-key-features)
 - [Getting Started](#-getting-started-login-to-our-app)
@@ -18,6 +17,11 @@ Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
   - [Orders](#-orders)
   - [Delivery](#-delivery)
   - [My Parcels](#-my-parcels)
+- [Tech Stack](#-tech-stack)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Future Work](#-future-work)
+- [References](#-references)
 
 ## ❌ Problem and Background of the project
 
@@ -96,7 +100,36 @@ The buttons on the upper right side help the users to filter the parcels for rel
 
 Then the users need to **click on the green button** to actually **create the parcel**. 
 
+## 🛠 Tech Stack
+- **Frontend:** 
+- **Backend:** 
+- **Maps & Geolocation:** 
+- **Hosting:**
+- **GitHub Issues:** [Report an issue](https://github.com/JanickBunzel/passTheParcel/issues)
 
+## 🤝 Contributing
+We welcome contributions! To contribute:
+1. **Fork the repository**.
+2. **Create a new branch** (`git checkout -b feature/YourFeature`).
+3. **Commit your changes** (`git commit -m 'Add some feature'`).
+4. **Push to the branch** (`git push origin feature/YourFeature`).
+5. **Open a Pull Request**.
 
+For major changes, please open an issue first to discuss what you’d like to change.
 
+## 📜 License
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
+
+## 🚀 Future Work aka Milestone 2.0
+- **AI-driven route optimization** for even greater efficiency.
+- **Integration with more courier services** to expand the network.
+- **Enhanced fraud prevention** and legal liability handling.
+- **Mobile app development** for on-the-go couriers.
+- **Optimized route suggestions**.
+- **Client data management**.
+
+## 📚 References
+- ifo Institute. (2020). *Traffic effects of a congestion charge in Munich*. [Link](https://www.ifo.de/en/publications/2020/monograph-authorship/traffic-effects-congestion-charge-munich)
+
+For questions or feedback, feel free to reach out via GitHub or contact us directly.
 
