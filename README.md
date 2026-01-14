@@ -56,6 +56,8 @@ When the users decide to want to deliver the package they need to click on the g
 
 ![Orders](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/OrdersPassTheParcel.png)
 
+The buttons on the upper right side help the users to filter the parcels for relevant criteria
+
 # 🚚 Delivery
 
 1. **Once collected**, the parcel is then displayed under the **“Active”-section**.
