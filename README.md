@@ -16,7 +16,6 @@ Munich is one of Europe’s congested cities in which multiple delivery companie
 
 To tackle this issue, **our project Pass the Parcel proposes a smarter peer-to-peer delivery system that optimizes parcel handoffs between couriers in real time and therefore optimizes routes, reduces overlaps and lowers emissions**. 
 
-
 ## 🌟 Key Features
 
 - **Real-time Parcel Tracking:** Track parcels and responsible couriers in real time.
@@ -28,11 +27,10 @@ To tackle this issue, **our project Pass the Parcel proposes a smarter peer-to-p
 
 ## 🚀 Getting Started
 
-### Prerequisites
+The app to our project can be accessed via following link: **https://pass-the-parcel-frontend.vercel.app/login**
+Once opened, the user can choose between three example logins: Alice Example, Bob Example, or Carla Example
 
-- Node.js (v16 or later)
-- npm or yarn
-- A modern web browser (Chrome, Firefox, Edge, Safari)
+## ❓How to navigate the app
 
 ### Installation
 
