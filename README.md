@@ -1,4 +1,4 @@
-<img width="4590" height="97" alt="image" src="https://github.com/user-attachments/assets/38627046-01cc-4222-b9d6-08ea02eae462" /># Pass the Parcel
+### Pass the Parcel
 
 **A smarter peer-to-peer parcel delivery system for Munich and beyond**
 
