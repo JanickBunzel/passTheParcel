@@ -8,6 +8,17 @@ This project was developed as part of the **Application Project / Bachelorsemina
 Supervisors: Klaus Müller (City of Munich), Prof. Dr. Jürgen Pfeffer (TUM), Janine Schröder (TUM)
 Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
 
+## 📋 Table of Contents
+- [About the Project](#-about-the-project)
+- [Problem and Background](#-problem-and-background-of-the-project)
+- [Key Features](#-key-features)
+- [Getting Started](#-getting-started-login-to-our-app)
+- [How to Navigate the App](#-how-to-navigate-the-app)
+  - [Map](#-map)
+  - [Orders](#-orders)
+  - [Delivery](#-delivery)
+  - [My Parcels](#-my-parcels)
+
 ## ❌ Problem and Background of the project
 
 City logistics systems are facing more and more challenges due to inefficient delivery routes, traffic congestion, and environmental impact.
