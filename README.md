@@ -34,12 +34,12 @@ Once opened, the user can choose between three example logins: Alice Example, Bo
 
 ## ❓How to navigate the app
 
-In the menu bar, users have the option to choose between map, orders, my parcels and delivery.
+In the menu bar, users have the option to choose between **map, orders, my parcels and delivery**.
 ![Menu](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/MenuPassTheParcel.png)
 
 # 🗺️ Map
 
-The map displays the location of parcels which need to be delivered.
+The map displays the **location of parcels which need to be delivered**.
 ![Map](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/MapPassTheParcel.png)
 
 # ✍️ Orders
