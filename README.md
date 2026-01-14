@@ -25,11 +25,13 @@ To tackle this issue, **our project Pass the Parcel proposes a smarter peer-to-p
 - **Digital Delivery Confirmation:** Uses photos or QR codes for proof of delivery.
 - **User Ratings & Trust:** Couriers are rated based on reliability and delivery performance.
 
-## 🚀 Getting Started
+## 🚀 Getting Started (Login to our app)
 
 The app to our project can be accessed via following link: **https://pass-the-parcel-frontend.vercel.app/login**
 
 Once opened, the user can choose between three example logins: Alice Example, Bob Example, or Carla Example
+
+![Login to Pass the Parcel](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/LoginPassTheParcel.png)
 
 ## ❓How to navigate the app
 
