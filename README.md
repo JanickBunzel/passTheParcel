@@ -82,6 +82,7 @@ The buttons on the upper right side help the users to filter the parcels for rel
    - a **optional description** with important information for the delivery persons.
 
 ![Create Parcel](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/CreateParcelPassTheParcel.png)
+
 Then the users need to **click on the green button** to actually **create the parcel**. 
 
 
