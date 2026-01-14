@@ -1,4 +1,4 @@
-# Pass the Parcel
+<img width="4590" height="97" alt="image" src="https://github.com/user-attachments/assets/38627046-01cc-4222-b9d6-08ea02eae462" /># Pass the Parcel
 
 **A smarter peer-to-peer parcel delivery system for Munich and beyond**
 
@@ -33,6 +33,14 @@ Once opened, the user can choose between three example logins: Alice Example, Bo
 
 ## ❓How to navigate the app
 
-- In the menu bar, users have the option to choose between map, orders, my parcels and delivery. v
-<img width="2102" height="97" alt="image" src="https://github.com/user-attachments/assets/fc3e7ef8-bca4-4257-bdfa-666d491ffca2" />
+In the menu bar, users have the option to choose between map, orders, my parcels and delivery.
+
+1. The map displays the location of parcels which need to be delivered.
+2. Under orders users can find detailed information about the parcels which need to be delivered. They see the current location of the parcel and where it needs to be delivered. Furthermore, they see the receiver of the package, the distance of the parcel from their current location and the CO2 they could save with the delivery. Also, they see how much they get paid for delivering the package. When the users decide to want to deliver the package they need to click on the green plus.
+3. Once collected, the parcel is then displayed under the “Active”-section of the delivery button and once the parcel is delivered the user needs to check the green button again. Then the parcel moves to the “Past”-section.
+4. Users can create their own parcels with the green plus button. Once clicked on the button users need to provide information on the start address and the destination of the parcel and can also give information about who the receiver is. The number which the users need to insert is the weight of the package and they also need to choose between normal, food or fragile. Optionally they can also write a description with important information for the delivery persons and then click on the green button to actually create the parcel. 
+
+
+
+
 
