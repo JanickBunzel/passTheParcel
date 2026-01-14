@@ -28,13 +28,11 @@ To tackle this issue, **our project Pass the Parcel proposes a smarter peer-to-p
 ## 🚀 Getting Started
 
 The app to our project can be accessed via following link: **https://pass-the-parcel-frontend.vercel.app/login**
+
 Once opened, the user can choose between three example logins: Alice Example, Bob Example, or Carla Example
 
 ## ❓How to navigate the app
 
-### Installation
+- In the menu bar, users have the option to choose between map, orders, my parcels and delivery. v
+<img width="2102" height="97" alt="image" src="https://github.com/user-attachments/assets/fc3e7ef8-bca4-4257-bdfa-666d491ffca2" />
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/JanickBunzel/passTheParcel.git
-   cd passTheParcel
