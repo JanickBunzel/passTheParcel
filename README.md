@@ -56,12 +56,25 @@ When the users decide to want to deliver the package they need to click on the g
 
 # Delivery
 
-**Once collected**, the parcel is then displayed under the **“Active”-section** and **when** the parcel is **delivered** the **user** needs to **check the green button**. 
-Then the **parcel** moves to the **“Past”-section**.
+1. **Once collected**, the parcel is then displayed under the **“Active”-section**.
+2. **When** the parcel is **delivered** the **user** needs to **check the green button**.
+3. Then the **parcel** moves to the **“Past”-section**.
+
+![Active](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/DeliveryActivePassTheParcel.png)
+![Past](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/DeliveryPastPassTheParcel.png)
 
 # My Parcels
 
-Users can create their own parcels with the green plus button. Once clicked on the button users need to provide information on the start address and the destination of the parcel and can also give information about who the receiver is. The number which the users need to insert is the weight of the package and they also need to choose between normal, food or fragile. Optionally they can also write a description with important information for the delivery persons and then click on the green button to actually create the parcel. 
+1. Users can **create** their **own parcels** with the **green plus button**.
+2. Once clicked on the button users need to provide information about
+   - the **start address**,
+   - the **destination** of the parcel,
+   - the **receiver** of the package,
+   - the **weight** of the package,
+   - whether their package is a **normal** one or **food** or **fragile** and
+   - a **optional description** with important information for the delivery persons.
+
+Then the users need to **click on the green button** to actually **create the parcel**. 
 
 
 
