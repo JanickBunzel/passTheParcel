@@ -1,6 +1,4 @@
-# Pass the Parcel
-
-**A smarter peer-to-peer parcel delivery system for Munich and beyond**
+# Pass the Parcel: A smarter peer-to-peer parcel delivery system for Munich and beyond
 
 ## 📦 About the Project
 
@@ -35,7 +33,7 @@ Once opened, the user can choose between three example logins: Alice Example, Bo
 ## ❓How to navigate the app
 
 In the menu bar, users have the option to choose between map, orders, my parcels and delivery.
-![Menu](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/MapPassTheParcel.png)
+![Menu](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/MenuPassTheParcel.png)
 
 # Map
 
