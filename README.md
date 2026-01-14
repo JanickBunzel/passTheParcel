@@ -1,4 +1,4 @@
-### Pass the Parcel
+# Pass the Parcel
 
 **A smarter peer-to-peer parcel delivery system for Munich and beyond**
 
@@ -47,7 +47,7 @@ Under orders users can find detailed information about the parcels which need to
 
 # Delivery
 
-3. Once collected, the parcel is then displayed under the “Active”-section of the delivery button and once the parcel is delivered the user needs to check the green button again. Then the parcel moves to the “Past”-section.
+Once collected, the parcel is then displayed under the “Active”-section of the delivery button and once the parcel is delivered the user needs to check the green button again. Then the parcel moves to the “Past”-section.
 
 # My Parcels
 
