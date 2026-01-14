@@ -35,6 +35,7 @@ Once opened, the user can choose between three example logins: Alice Example, Bo
 ## ❓How to navigate the app
 
 In the menu bar, users have the option to choose between map, orders, my parcels and delivery.
+![Menu](https://raw.githubusercontent.com/JanickBunzel/passTheParcel/main/MapPassTheParcel.png)
 
 # Map
 
@@ -43,7 +44,15 @@ The map displays the location of parcels which need to be delivered.
 
 # Orders
 
-Under orders users can find detailed information about the parcels which need to be delivered. They see the current location of the parcel and where it needs to be delivered. Furthermore, they see the receiver of the package, the distance of the parcel from their current location and the CO2 they could save with the delivery. Also, they see how much they get paid for delivering the package. When the users decide to want to deliver the package they need to click on the green plus.
+Here users can find detailed information about the parcels which need to be delivered. They see 
+- **the current location of the parcel**,
+- **where** it needs **to** be **delivered**,
+- the **receiver of the package**,
+- the **distance** of the parcel **from their current location**,
+- the **CO2** they **save** with the delivery and
+- **how much** they get **paid** for delivering the package.
+
+When the users decide to want to deliver the package they need to click on the green plus.
 
 # Delivery
 
