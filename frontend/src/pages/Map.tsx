@@ -8,8 +8,9 @@ import { useAllParcelsQuery } from '@/api/parcels.api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useAddressesQuery } from '@/api/addresses.api';
 import { useAccountsQuery } from '@/api/accounts.api';
-import { useOrdersQuery } from '@/api/orders.api';
+import { useClaimOrderMutation, useOrdersQuery } from '@/api/orders.api';
 import { useAccount } from '@/contexts/AccountContext.tsx';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 
 /* ---------- helpers (same as elsewhere) ---------- */
 const calculateDistanceKm = () => Number((Math.random() * 4.8 + 0.2).toFixed(2));
@@ -60,6 +61,8 @@ function formatReceiver(_parcel: ParcelRow, receiver: AccountRow) {
 }
 
 const Map = () => {
+    const navigate = useNavigate();
+
     const { account: user } = useAccount();
     const { data: orders = [] } = useOrdersQuery();
     const mapRef = useRef<MapRef | null>(null);
@@ -178,6 +181,14 @@ const Map = () => {
         setLoadingDetails(false);
     };
 
+    const claimOrderMutation = useClaimOrderMutation();
+    const addToCart = async (order: OrderWithParcel) => {
+        if (!user) return;
+
+        claimOrderMutation.mutateAsync({ orderId: order.id, userId: user.id });
+        navigate({ to: '/delivery' });
+    };
+
     return (
         <div className="relative size-full">
             <div className="flex gap-1 absolute top-2 left-2 right-2 z-50">
@@ -200,7 +211,7 @@ const Map = () => {
                 initialViewState={{
                     latitude: 48.137154,
                     longitude: 11.576124,
-                    zoom: 6,
+                    zoom: 5,
                 }}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle="https://api.maptiler.com/maps/basic-v2/style.json?key=IXFb3VpnbYogHluMPMN7"
@@ -235,11 +246,7 @@ const Map = () => {
                 order={selectedOrder}
                 onClose={closeDetails}
                 // only show button if owner == null; modal already handles this
-                onTakeOrder={(o) => {
-                    // You can reuse your addToCart() logic here if you have it on this page.
-                    // For now, just log to show wiring works.
-                    console.log('Take order', o.id);
-                }}
+                onTakeOrder={(o) => addToCart(o)}
                 currentUserId={user?.id ?? null}
                 formatAddress={formatAddress}
                 formatReceiver={formatReceiver}

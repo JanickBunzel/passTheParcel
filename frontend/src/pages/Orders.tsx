@@ -11,6 +11,7 @@ import { sortItems, type SortOption } from '@/lib/utils';
 import type { AccountRow, AddressRow, OrderWithParcel, ParcelRow } from '@/lib/types';
 import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 import { useAccount } from '@/contexts/AccountContext';
+import { useNavigate } from '@tanstack/react-router';
 
 // -----------------------------
 // Mock calculation helpers
@@ -26,7 +27,7 @@ function hashToUnitFloat(orderId: string, salt: string) {
  * Distance: deterministic in range [0.2, 5.0] km based on orderId
  */
 export function calculateDistanceKmDet(orderId: string): number {
-    const u = hashToUnitFloat(orderId, "distance");
+    const u = hashToUnitFloat(orderId, 'distance');
     const km = 0.2 + u * 4.8;
     return Number(km.toFixed(2));
 }
@@ -36,7 +37,7 @@ export function calculateDistanceKmDet(orderId: string): number {
  */
 export function calculateCO2SavedDet(orderId: string, distanceKm: number): number {
     // Keep your old logic but deterministic; add a tiny deterministic jitter if desired
-    const jitter = 0.9 + hashToUnitFloat(orderId, "co2") * 0.2; // 0.9..1.1
+    const jitter = 0.9 + hashToUnitFloat(orderId, 'co2') * 0.2; // 0.9..1.1
     return Math.round(distanceKm * 120 * jitter);
 }
 
@@ -48,7 +49,7 @@ export function calculatePriceDet(orderId: string, parcel: ParcelRow, distanceKm
     const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
 
     // deterministic small surcharge/discount: -0.20 .. +0.30
-    const tweak = -0.2 + hashToUnitFloat(orderId, "price") * 0.5;
+    const tweak = -0.2 + hashToUnitFloat(orderId, 'price') * 0.5;
 
     const price = base + distanceKm * 0.4 + weightFactor + tweak;
     return Number(price.toFixed(2));
@@ -107,6 +108,8 @@ function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
 // -----------------------------
 
 export default function Orders() {
+    const navigate = useNavigate();
+
     const { account: user } = useAccount();
 
     const [query, setQuery] = useState<string>('');
@@ -168,10 +171,11 @@ export default function Orders() {
         if (!user) return;
 
         claimOrderMutation.mutateAsync({ orderId: order.id, userId: user.id });
+        navigate({ to: '/delivery' });
     };
 
     // Apply filtering then sorting
-    const filteredOrders = orders.filter(order => {
+    const filteredOrders = orders.filter((order) => {
         if (filterType && order.parcelData.type !== filterType) return false;
         if (maxWeightKg !== null && (order.parcelData.weight ?? 0) > maxWeightKg) return false;
         return true;
@@ -283,7 +287,6 @@ export default function Orders() {
                         </div>
                     </div>
                 )}
-
             </div>
 
             {/* Order list */}
