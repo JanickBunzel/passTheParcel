@@ -4,13 +4,8 @@ import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Plus, Clock, AlertTriangle } from 'lucide-react';
-import type { Database } from '@/lib/database.types';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
-
-/* ---------------- types ---------------- */
-type ParcelRow = Database['public']['Tables']['parcels']['Row'];
-type AddressRow = Database['public']['Tables']['addresses']['Row'];
-type UserRow = Database['public']['Tables']['accounts']['Row'];
+import type { AccountRow, AddressRow, ParcelRow } from '@/lib/types';
 
 type ParcelUI = ParcelRow & {
     distanceKm: number;
@@ -18,7 +13,7 @@ type ParcelUI = ParcelRow & {
     co2: number;
     price: number;
     toAddress?: AddressRow | null;
-    toReceiver?: UserRow | null;
+    toReceiver?: AccountRow | null;
 };
 
 /* ---------------- mock helpers ---------------- */
@@ -29,27 +24,23 @@ const mockPrice = (km: number, weight: number) => Number((1.5 + km * 0.4 + weigh
 
 // Address display helper
 function formatAddress(address?: AddressRow | null) {
-    if (!address) return "Unknown location";
+    if (!address) return 'Unknown location';
 
-    const parts = [
-        address.street,
-        address.house_number,
-        address.postal_code,
-        address.city,
-        address.country,
-    ].filter(Boolean);
+    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
+        Boolean
+    );
 
-    if (parts.length > 0) return parts.join(" ");
+    if (parts.length > 0) return parts.join(' ');
 
     // fallback: coordinates in geodata if present
     const g: any = address.geodata;
     const lat = g?.lat ?? g?.latitude;
     const lng = g?.lng ?? g?.longitude;
-    if (typeof lat === "number" && typeof lng === "number") {
+    if (typeof lat === 'number' && typeof lng === 'number') {
         return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
     }
 
-    return "Unknown location";
+    return 'Unknown location';
 }
 
 /* ---------------- page ---------------- */
@@ -140,25 +131,19 @@ const MyParcels = () => {
                 )}
 
                 {visibleParcels.map((parcel) => {
-                    const receiverName = parcel.toReceiver?.name ?? parcel.toReceiver?.email ?? "Receiver";
-                    const statusLabel =
-                        parcel.status
-                            ? parcel.status.replaceAll("_", " ").toLowerCase()
-                            : "unknown";
+                    const receiverName = parcel.toReceiver?.name ?? parcel.toReceiver?.email ?? 'Receiver';
+                    const statusLabel = parcel.status ? parcel.status.replaceAll('_', ' ').toLowerCase() : 'unknown';
 
                     return (
                         <Card key={parcel.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
                                 {/* Title: Receiver */}
-                                <div className="text-green-700 font-semibold text-base">
-                                    {receiverName}
-                                </div>
+                                <div className="text-green-700 font-semibold text-base">{receiverName}</div>
 
                                 {/* Route */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <span className="font-medium">To:</span>{" "}
-                                        {formatAddress(parcel.toAddress)}
+                                        <span className="font-medium">To:</span> {formatAddress(parcel.toAddress)}
                                     </div>
                                 </div>
 
@@ -167,13 +152,10 @@ const MyParcels = () => {
                                     {/* Left: status (+ ETA) */}
                                     <div className="flex flex-col gap-1 text-sm">
                                         <div className="font-medium text-gray-700">
-                                            Status:{" "}
-                                            <span className="capitalize">
-                {statusLabel}
-            </span>
+                                            Status: <span className="capitalize">{statusLabel}</span>
                                         </div>
 
-                                        {activeTab === "ACTIVE" && (
+                                        {activeTab === 'ACTIVE' && (
                                             <div className="flex items-center gap-1 text-gray-700">
                                                 <Clock className="h-4 w-4" />
                                                 ETA: {parcel.eta}
@@ -184,12 +166,12 @@ const MyParcels = () => {
                                     {/* Right: description + flags */}
                                     <div className="flex flex-col items-end gap-2 text-sm">
                                         {parcel.description && (
-                                            <div className="text-gray-600 text-right max-w-[220px]">
+                                            <div className="text-gray-600 text-right max-w-55">
                                                 {parcel.description}
                                             </div>
                                         )}
 
-                                        {parcel.type !== "NORMAL" && (
+                                        {parcel.type !== 'NORMAL' && (
                                             <div className="flex items-center gap-1 text-orange-600">
                                                 <AlertTriangle className="h-4 w-4" />
                                                 {parcel.type}

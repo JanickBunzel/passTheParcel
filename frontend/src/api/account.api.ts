@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import type { Database } from '@/lib/database.types';
+import type { AccountRow } from '@/lib/types';
 
-export type Account = Database['public']['Tables']['accounts']['Row'];
-
-async function fetchAccount(userId: string): Promise<Account | null> {
+async function fetchAccount(userId: string): Promise<AccountRow | null> {
     const { data, error } = await supabase.from('accounts').select('*').eq('id', userId).single();
 
     if (error) {
