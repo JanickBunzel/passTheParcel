@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
-import { MapPin, Leaf, AlertTriangle, Check } from 'lucide-react';
+import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
 import { Button } from '@/components/shadcn/button';
@@ -10,16 +10,15 @@ import { Button } from '@/components/shadcn/button';
 type ParcelRow = Database['public']['Tables']['parcels']['Row'];
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 type AddressRow = Database['public']['Tables']['addresses']['Row'];
-type UserRow = Database['public']['Tables']['accounts']['Row'];
 
 type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
     parcel: ParcelRow;
     fromAddress?: AddressRow | null;
     toAddress?: AddressRow | null;
-    receiver?: UserRow | null;
     distanceKm: number;
     price: number;
     co2: number;
+    deadlineMs: number;
 };
 
 /* ---------------- mock helpers ---------------- */
@@ -30,29 +29,51 @@ const calculatePrice = (parcel: ParcelRow, km: number) => Number((1 + km * 0.4 +
 
 const calculateCO2Saved = (_: ParcelRow, km: number) => Math.round(km * 120);
 
-// Address display helper
-function formatAddress(address?: any | null) {
-    if (!address) return 'Unknown location';
-
-    const parts = [address.street, address.postcode, address.city, address.country].filter(Boolean);
-
-    if (parts.length > 0) {
-        return parts.join(', ');
-    }
-
-    if (address.lat && address.lng) {
-        return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
-    }
-
-    return 'Unknown location';
+function hashToInt(str: string) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
 }
 
-// Receiver display helper
-function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
-    if (!parcel.receiver) return 'Unknown receiver';
-    if (!receiver) return 'Unknown receiver';
+// Stable deadline between 1 and 72 hours from "now", based on order id
+function mockDeadlineMs(orderId: string) {
+    const h = hashToInt(orderId);
+    const hours = (h % 72) + 1;
+    return Date.now() + hours * 60 * 60 * 1000;
+}
 
-    return receiver.name ?? receiver.email ?? 'Unknown receiver';
+// Show weekday + time (no "deadline" text)
+function formatDeadline(ms: number) {
+    return new Date(ms).toLocaleString(undefined, {
+        weekday: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+// Address display helper
+function formatAddress(address?: AddressRow | null) {
+    if (!address) return "Unknown location";
+
+    const parts = [
+        address.street,
+        address.house_number,
+        address.postal_code,
+        address.city,
+        address.country,
+    ].filter(Boolean);
+
+    if (parts.length > 0) return parts.join(" ");
+
+    const g: any = address.geodata;
+    const lat = g?.lat ?? g?.latitude;
+    const lng = g?.lng ?? g?.longitude;
+
+    if (typeof lat === "number" && typeof lng === "number") {
+        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
+
+    return "Unknown location";
 }
 
 /* ---------------- component ---------------- */
@@ -93,8 +114,6 @@ export default function Delivery() {
 
             const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
 
-            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
-
             const enriched: OrderWithParcel[] = ordersData.map((order) => {
                 const parcel = parcelsData.find((p) => p.id === order.parcel)!;
                 const distanceKm = calculateDistanceKm();
@@ -114,10 +133,10 @@ export default function Delivery() {
                     // Enriched fields
                     fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
                     toAddress: addresses?.find((a) => a.id === order.to) ?? null,
-                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
+                    deadlineMs: mockDeadlineMs(order.id),
                 };
             });
 
@@ -172,7 +191,12 @@ export default function Delivery() {
     };
 
     /* ---------- filter ---------- */
-    const visibleOrders = orders.filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null));
+    const visibleOrders = orders
+        .filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null))
+        .sort((a, b) => {
+            if (tab !== "ACTIVE") return 0;
+            return a.deadlineMs - b.deadlineMs; // soonest first
+        });
 
     return (
         <div className="flex flex-col">
@@ -204,24 +228,47 @@ export default function Delivery() {
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
-                                {/* Route + receiver */}
+                                {/* Title row: deadline (ACTIVE) or Completed (PAST) */}
+                                {tab === "ACTIVE" ? (
+                                    <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{formatDeadline(order.deadlineMs)}</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-green-700 font-semibold text-base leading-tight">
+                                        Completed
+                                    </div>
+                                )}
+
+                                {/* From / To (receiver omitted as requested) */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <span className="font-medium">From:</span> {formatAddress(order.fromAddress)}
+                                        <span className="font-medium">From:</span>{" "}
+                                        {formatAddress(order.fromAddress)}
                                     </div>
                                     <div>
-                                        <span className="font-medium">To:</span> {formatAddress(order.toAddress)}
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Receiver:</span>{' '}
-                                        {formatReceiver(parcel, order.receiver)}
+                                        <span className="font-medium">To:</span>{" "}
+                                        {formatAddress(order.toAddress)}
                                     </div>
                                 </div>
 
-                                {/* Metrics + action */}
-                                <div className="flex justify-between items-center gap-4 border-t pt-3">
+                                {/* Bottom row: metrics left, price + action right */}
+                                <div className="flex justify-between items-start gap-4 border-t pt-3">
+                                    {/* Left: type/weight/distance/co2 */}
                                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-1">
+                                        {parcel.type !== "NORMAL" && (
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                {parcel.type}
+                                            </div>
+                                        )}
+
+                                        <div className="text-gray-700">
+                                            <span className="font-medium">Weight:</span>{" "}
+                                            {parcel.weight} g
+                                        </div>
+
+                                        <div className="flex items-center gap-1 text-gray-700">
                                             <MapPin className="h-4 w-4 text-gray-500" />
                                             {distanceKm} km
                                         </div>
@@ -230,22 +277,26 @@ export default function Delivery() {
                                             <Leaf className="h-4 w-4" />
                                             {co2} g CO₂
                                         </div>
-
-                                        {parcel.type !== 'NORMAL' && (
-                                            <div className="flex items-center gap-1 text-orange-600">
-                                                <AlertTriangle className="h-4 w-4" />
-                                                {parcel.type}
-                                            </div>
-                                        )}
                                     </div>
 
+                                    {/* Right: price + mark delivered (ACTIVE only) */}
                                     <div className="flex items-center gap-3">
-                                        <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
-
-                                        {tab === 'ACTIVE' && (
-                                            <Button size="icon" onClick={() => markDelivered(order)}>
-                                                <Check />
-                                            </Button>
+                                        {tab === "ACTIVE" ? (
+                                            <>
+                                                <div className="font-semibold text-lg">
+                                                    €{price.toFixed(2)}
+                                                </div>
+                                                <Button size="icon" onClick={() => markDelivered(order)}>
+                                                    <Check />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="text-sm font-medium text-gray-500">
+                                                €{price.toFixed(2)}
+                                                <span className="text-sm font-normal text-gray-600">
+                                                    {" "} reward received
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

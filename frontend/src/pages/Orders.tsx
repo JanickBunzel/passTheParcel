@@ -33,13 +33,22 @@ function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
     return Math.round(distanceKm * 120);
 }
 
-function mockDeadlineMs(): number {
-    const hours = Math.floor(Math.random() * 72) + 1;
-    return Date.now() + hours * 60 * 60 * 1000; // milliseconds timestamp
+function hashToInt(str: string) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
 }
 
-function formatDeadline(deadlineMs: number) {
-    return new Date(deadlineMs).toLocaleString(undefined, {
+// Stable deadline between 1 and 72 hours from "now", based on order id
+function mockDeadlineMs(orderId: string) {
+    const h = hashToInt(orderId);
+    const hours = (h % 72) + 1;
+    return Date.now() + hours * 60 * 60 * 1000;
+}
+
+// Show weekday + time (no "deadline" text)
+function formatDeadline(ms: number) {
+    return new Date(ms).toLocaleString(undefined, {
         weekday: "long",
         hour: "2-digit",
         minute: "2-digit",
@@ -123,7 +132,7 @@ export default function Orders() {
 
                 return {
                     ...order,
-                    deadline: mockDeadlineMs(),
+                    deadline: mockDeadlineMs(order.id),
                     parcelData: parcel,
                     fromAddress: addresses?.find(a => a.id === order.from) ?? null,
                     toAddress: addresses?.find(a => a.id === order.to) ?? null,
