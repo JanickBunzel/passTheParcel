@@ -7,8 +7,8 @@ import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 import { useDeliveryOrdersQuery, useMarkOrderDeliveredMutation } from '@/api/delivery.api';
 import { useAllParcelsQuery } from '@/api/parcels.api';
 import { useAddressesQuery } from '@/api/addresses.api';
-import type { AddressRow, OrderRow, ParcelRow } from '@/lib/types';
 import { useAccount } from '@/contexts/AccountContext';
+import { useAccountsQuery } from '@/api/accounts.api.ts';
 
 
 /* ---------------- mock helpers ---------------- */
@@ -88,6 +88,7 @@ export default function Delivery() {
     const { data: ordersData = [] } = useDeliveryOrdersQuery(user?.id || null);
     const { data: parcelsData = [] } = useAllParcelsQuery();
     const { data: addresses = [] } = useAddressesQuery();
+    const { data: receivers = [] } = useAccountsQuery();
     const markOrderDeliveredMutation = useMarkOrderDeliveredMutation();
 
     // Enrich orders with parcel and address info
@@ -113,7 +114,7 @@ export default function Delivery() {
     /* ---------- mark delivered ---------- */
     const markDelivered = async (order: OrderWithParcel) => {
         try {
-            await markOrderDeliveredMutation.mutateAsync({ orderId: order.id, parcelId: order.parcel.id });
+            await markOrderDeliveredMutation.mutateAsync({ orderId: order.id, parcelId: order.parcelData.id });
         } catch (error) {
             console.error(error);
         }
