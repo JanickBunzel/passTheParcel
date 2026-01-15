@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/shadcn/button';
+import { useDeliveryOrdersQuery, useMarkOrderDeliveredMutation } from '@/api/delivery.api';
+import { useAllParcelsQuery } from '@/api/parcels.api';
+import { useAddressesQuery } from '@/api/addresses.api';
 import type { AddressRow, OrderRow, ParcelRow } from '@/lib/types';
+import { useAccount } from '@/contexts/AccountContext';
 
 type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
     parcel: ParcelRow;
@@ -67,117 +70,51 @@ function formatAddress(address?: AddressRow | null) {
 }
 
 /* ---------------- component ---------------- */
-
 export default function Delivery() {
-    const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [userId, setUserId] = useState<string | null>(null);
     const [tab, setTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
 
-    /* ---------- current user ---------- */
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            setUserId(data.user?.id ?? null);
-        });
-    }, []);
+    const { account: user } = useAccount();
 
-    /* ---------- fetch orders ---------- */
-    useEffect(() => {
-        if (!userId) return;
+    // React Query hooks
+    const { data: ordersData = [] } = useDeliveryOrdersQuery(user?.id || null);
+    const { data: parcelsData = [] } = useAllParcelsQuery();
+    const { data: addresses = [] } = useAddressesQuery();
+    const markOrderDeliveredMutation = useMarkOrderDeliveredMutation();
 
-        const fetchOrders = async () => {
-            const { data: ordersData } = await supabase.from('orders').select('*').eq('owner', userId);
+    // Enrich orders with parcel and address info
+    const orders: OrderWithParcel[] = ordersData.map((order) => {
+        const parcel = parcelsData.find((p) => p.id === order.parcel)!;
+        const distanceKm = calculateDistanceKm();
+        const price = calculatePrice(parcel, distanceKm);
+        const co2 = calculateCO2Saved(parcel, distanceKm);
 
-            if (!ordersData || ordersData.length === 0) {
-                setOrders([]);
-                return;
-            }
-
-            const parcelIds = ordersData.map((o) => o.parcel);
-
-            const { data: parcelsData } = await supabase.from('parcels').select('*').in('id', parcelIds);
-
-            if (!parcelsData) return;
-
-            // Filter out nulls for addressIds and receiverIds
-            const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
-            const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
-
-            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
-
-            const enriched: OrderWithParcel[] = ordersData.map((order) => {
-                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm();
-                const price = calculatePrice(parcel, distanceKm);
-                const co2 = calculateCO2Saved(parcel, distanceKm);
-
-                return {
-                    // Explicitly assign all OrderRow fields except 'parcel', then override with full parcel object
-                    id: order.id,
-                    owner: order.owner,
-                    parcel: parcel,
-                    from: order.from,
-                    to: order.to,
-                    started: order.started,
-                    finished: order.finished,
-                    next: order.next,
-                    // Enriched fields
-                    fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
-                    toAddress: addresses?.find((a) => a.id === order.to) ?? null,
-                    distanceKm,
-                    price,
-                    co2,
-                    deadlineMs: mockDeadlineMs(order.id),
-                };
-            });
-
-            setOrders(enriched);
+        return {
+            // Explicitly assign all OrderRow fields except 'parcel', then override with full parcel object
+            id: order.id,
+            owner: order.owner,
+            parcel: parcel,
+            from: order.from,
+            to: order.to,
+            started: order.started,
+            finished: order.finished,
+            next: order.next,
+            // Enriched fields
+            fromAddress: addresses.find((a) => a.id === order.from) ?? null,
+            toAddress: addresses.find((a) => a.id === order.to) ?? null,
+            distanceKm,
+            price,
+            co2,
+            deadlineMs: mockDeadlineMs(order.id),
         };
-
-        fetchOrders();
-    }, [userId]);
+    });
 
     /* ---------- mark delivered ---------- */
     const markDelivered = async (order: OrderWithParcel) => {
-        const finishedAt = new Date().toISOString();
-
-        const { error: orderError } = await supabase.from('orders').update({ finished: finishedAt }).eq('id', order.id);
-
-        if (orderError) {
-            console.error(orderError);
-            return;
+        try {
+            await markOrderDeliveredMutation.mutateAsync({ orderId: order.id, parcelId: order.parcel.id });
+        } catch (error) {
+            console.error(error);
         }
-
-        const { error: parcelError } = await supabase
-            .from('parcels')
-            .update({ status: 'DELIVERED' })
-            .eq('id', order.parcel.id);
-
-        if (parcelError) {
-            console.error(parcelError);
-            return;
-        }
-
-        // update local state
-        setOrders((prev) =>
-            prev.map((o) => {
-                if (o.id === order.id) {
-                    // Only spread if o.parcel is an object
-                    if (o.parcel && typeof o.parcel === 'object' && !Array.isArray(o.parcel)) {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                            parcel: { ...o.parcel, status: 'DELIVERED' },
-                        };
-                    } else {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                        };
-                    }
-                }
-                return o;
-            })
-        );
     };
 
     /* ---------- filter ---------- */
