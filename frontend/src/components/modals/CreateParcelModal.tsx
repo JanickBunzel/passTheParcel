@@ -5,12 +5,11 @@ import { Textarea } from '@/components/shadcn/textarea';
 import { supabase } from '@/lib/supabaseClient';
 import { X } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
+import type { AccountRow, AddressRow } from '@/lib/types';
 
 /* ---------- types ---------- */
 type ParcelInsert = Database['public']['Tables']['parcels']['Insert'];
 type OrderInsert = Database['public']['Tables']['orders']['Insert'];
-type AccountRow = Database['public']['Tables']['accounts']['Row'];
-type AddressRow = Database['public']['Tables']['addresses']['Row'];
 
 type Props = {
     open: boolean;
@@ -71,11 +70,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
         setLoading(true);
 
         /* 1️⃣ create parcel */
-        const { data: parcel, error: parcelError } = await supabase
-            .from('parcels')
-            .insert(form)
-            .select()
-            .single();
+        const { data: parcel, error: parcelError } = await supabase.from('parcels').insert(form).select().single();
 
         if (parcelError || !parcel) {
             console.error(parcelError);

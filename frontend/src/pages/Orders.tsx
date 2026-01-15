@@ -4,18 +4,9 @@ import { Button } from '@/components/shadcn/button';
 import { Input } from '@/components/shadcn/input';
 import { Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import type { Database } from '@/lib/database.types';
 import { sortItems, type SortOption } from '@/lib/utils';
-import type { OrderWithParcel } from '@/lib/types';
-import OrderDetailsModal from "@/components/modals/OrderDetailsModal";
-
-// -----------------------------
-// Types
-// -----------------------------
-
-type ParcelRow = Database['public']['Tables']['parcels']['Row'];
-type AddressRow = Database['public']['Tables']['addresses']['Row'];
-type UserRow = Database['public']['Tables']['accounts']['Row'];
+import type { AccountRow, AddressRow, OrderWithParcel, ParcelRow } from '@/lib/types';
+import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 
 // -----------------------------
 // Mock calculation helpers
@@ -51,45 +42,36 @@ function mockDeadlineMs(orderId: string) {
 // Show weekday + time (no "deadline" text)
 function formatDeadline(ms: number) {
     return new Date(ms).toLocaleString(undefined, {
-        weekday: "long",
-        hour: "2-digit",
-        minute: "2-digit",
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }
 
 // Address
 function formatAddress(address?: AddressRow | null) {
-    if (!address) return "Unknown location";
+    if (!address) return 'Unknown location';
 
-    const parts = [
-        address.street,
-        address.house_number,
-        address.postal_code,
-        address.city,
-        address.country,
-    ].filter(Boolean);
+    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
+        Boolean
+    );
 
-    if (parts.length > 0) return parts.join(" ");
+    if (parts.length > 0) return parts.join(' ');
 
     // fallback: coordinates from geodata JSON
     const g: any = address.geodata;
     const lat = g?.lat ?? g?.latitude;
     const lng = g?.lng ?? g?.longitude;
 
-    if (typeof lat === "number" && typeof lng === "number") {
+    if (typeof lat === 'number' && typeof lng === 'number') {
         return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
     }
 
-    return "Unknown location";
+    return 'Unknown location';
 }
 
-function formatReceiver(
-    _parcel: ParcelRow,
-    receiver: UserRow
-): string {
-    return receiver.name?.trim()
-        || receiver.email
-        || "Unknown receiver";
+function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
+    return receiver.name?.trim() || receiver.email || 'Unknown receiver';
 }
 
 // -----------------------------
@@ -116,12 +98,15 @@ export default function Orders() {
     };
 
     // Toggle filter dropdown
-    const toggleFilter = () => setIsFilterOpen(prev => !prev);
+    const toggleFilter = () => setIsFilterOpen((prev) => !prev);
 
     // Fetch logged-in user
     useEffect(() => {
         const fetchUser = async () => {
-            const { data: { user: accountUser }, error: accountError } = await supabase.auth.getUser();
+            const {
+                data: { user: accountUser },
+                error: accountError,
+            } = await supabase.auth.getUser();
             if (accountError || !accountUser) {
                 console.error('No user logged in:', accountError);
                 return;
@@ -134,21 +119,27 @@ export default function Orders() {
     // Fetch orders
     useEffect(() => {
         const fetchOrders = async () => {
-            const { data: ordersData, error: ordersError } = await supabase.from('orders').select('*').is('owner', null);
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('*')
+                .is('owner', null);
             if (ordersError || !ordersData) return console.error(ordersError);
 
-            const parcelIds = ordersData.map(o => o.parcel);
-            const { data: parcelsData, error: parcelsError } = await supabase.from('parcels').select('*').in('id', parcelIds);
+            const parcelIds = ordersData.map((o) => o.parcel);
+            const { data: parcelsData, error: parcelsError } = await supabase
+                .from('parcels')
+                .select('*')
+                .in('id', parcelIds);
             if (parcelsError || !parcelsData) return console.error(parcelsError);
 
-            const addressIds = ordersData.flatMap(o => [o.from, o.to]).filter((id): id is string => Boolean(id));
-            const receiverIds = parcelsData.map(p => p.receiver).filter((id): id is string => Boolean(id));
+            const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
+            const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
 
             const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
             const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
 
-            const enriched: OrderWithParcel[] = ordersData.map(order => {
-                const parcel = parcelsData.find(p => p.id === order.parcel)!;
+            const enriched: OrderWithParcel[] = ordersData.map((order) => {
+                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
                 const distanceKm = calculateDistanceKm(parcel);
                 const price = calculatePrice(parcel, distanceKm);
                 const co2 = calculateCO2Saved(parcel, distanceKm);
@@ -157,9 +148,9 @@ export default function Orders() {
                     ...order,
                     deadline: mockDeadlineMs(order.id),
                     parcelData: parcel,
-                    fromAddress: addresses?.find(a => a.id === order.from) ?? null,
-                    toAddress: addresses?.find(a => a.id === order.to) ?? null,
-                    receiver: receivers?.find(r => r.id === parcel.receiver) ?? null,
+                    fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
+                    toAddress: addresses?.find((a) => a.id === order.to) ?? null,
+                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
@@ -173,19 +164,19 @@ export default function Orders() {
 
     const addToCart = async (order: OrderWithParcel) => {
         if (!user) {
-            console.warn("No user logged in!");
+            console.warn('No user logged in!');
             return;
         }
 
         const startedAt = new Date().toISOString();
 
         const { error } = await supabase
-            .from("orders")
+            .from('orders')
             .update({
                 owner: user.id,
                 started: startedAt,
             })
-            .eq("id", order.id);
+            .eq('id', order.id);
 
         if (error) {
             console.error(error);
@@ -203,15 +194,10 @@ export default function Orders() {
         <div className="min-h-screen bg-gray-50 flex flex-col relative">
             {/* Top bar */}
             <div className="p-4 bg-white shadow-sm flex items-center gap-2 relative">
-                <Input
-                    placeholder="Where are you going?"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                />
+                <Input placeholder="Where are you going?" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <div className="relative">
+                    {/* Sort button */}
 
-                {/* Sort button */}
-                
                     <Button variant="outline" size="icon" onClick={toggleFilter}>
                         <ArrowUpDown className="h-4 w-4" />
                     </Button>
@@ -220,42 +206,51 @@ export default function Orders() {
                         <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-md z-10 p-2 space-y-1">
                             <button
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                                onClick={() => { setSortBy('priceAsc'); setIsFilterOpen(false); }}
+                                onClick={() => {
+                                    setSortBy('priceAsc');
+                                    setIsFilterOpen(false);
+                                }}
                             >
                                 Price: Low → High
                             </button>
                             <button
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                                onClick={() => { setSortBy('priceDesc'); setIsFilterOpen(false); }}
+                                onClick={() => {
+                                    setSortBy('priceDesc');
+                                    setIsFilterOpen(false);
+                                }}
                             >
                                 Price: High → Low
                             </button>
                             <button
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                                onClick={() => { setSortBy('distanceAsc'); setIsFilterOpen(false); }}
+                                onClick={() => {
+                                    setSortBy('distanceAsc');
+                                    setIsFilterOpen(false);
+                                }}
                             >
                                 Distance: Short → Long
                             </button>
                             <button
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                                onClick={() => { setSortBy('distanceDesc'); setIsFilterOpen(false); }}
+                                onClick={() => {
+                                    setSortBy('distanceDesc');
+                                    setIsFilterOpen(false);
+                                }}
                             >
                                 Distance: Long → Short
                             </button>
                         </div>
                     )}
-                
                 </div>
                 <Button variant="outline" size="icon">
-                        <Filter className="h-4 w-4" />
-                    </Button>
-
-                
+                    <Filter className="h-4 w-4" />
+                </Button>
             </div>
 
             {/* Order list */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {sortedOrders.map(order => {
+                {sortedOrders.map((order) => {
                     const { parcelData, distanceKm, price, co2 } = order;
                     return (
                         <Card
@@ -284,7 +279,7 @@ export default function Orders() {
                                 <div className="flex justify-between items-start gap-4 border-t pt-3">
                                     {/* Left: type/weight/distance/co2 */}
                                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        {parcelData.type !== "NORMAL" && (
+                                        {parcelData.type !== 'NORMAL' && (
                                             <div className="flex items-center gap-1 text-orange-600">
                                                 <AlertTriangle className="h-4 w-4" />
                                                 {parcelData.type}
@@ -335,9 +330,9 @@ export default function Orders() {
                 formatReceiver={formatReceiver}
                 formatDeadline={(deadlineMs: number) =>
                     new Date(deadlineMs).toLocaleString(undefined, {
-                        weekday: "long",
-                        hour: "2-digit",
-                        minute: "2-digit",
+                        weekday: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
                     })
                 }
             />

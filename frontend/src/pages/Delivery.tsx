@@ -2,14 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import type { Database } from '@/lib/database.types';
 import { Button } from '@/components/shadcn/button';
-
-/* ---------------- types ---------------- */
-
-type ParcelRow = Database['public']['Tables']['parcels']['Row'];
-type OrderRow = Database['public']['Tables']['orders']['Row'];
-type AddressRow = Database['public']['Tables']['addresses']['Row'];
+import type { AddressRow, OrderRow, ParcelRow } from '@/lib/types';
 
 type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
     parcel: ParcelRow;
@@ -45,35 +39,31 @@ function mockDeadlineMs(orderId: string) {
 // Show weekday + time (no "deadline" text)
 function formatDeadline(ms: number) {
     return new Date(ms).toLocaleString(undefined, {
-        weekday: "long",
-        hour: "2-digit",
-        minute: "2-digit",
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }
 
 // Address display helper
 function formatAddress(address?: AddressRow | null) {
-    if (!address) return "Unknown location";
+    if (!address) return 'Unknown location';
 
-    const parts = [
-        address.street,
-        address.house_number,
-        address.postal_code,
-        address.city,
-        address.country,
-    ].filter(Boolean);
+    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
+        Boolean
+    );
 
-    if (parts.length > 0) return parts.join(" ");
+    if (parts.length > 0) return parts.join(' ');
 
     const g: any = address.geodata;
     const lat = g?.lat ?? g?.latitude;
     const lng = g?.lng ?? g?.longitude;
 
-    if (typeof lat === "number" && typeof lng === "number") {
+    if (typeof lat === 'number' && typeof lng === 'number') {
         return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
     }
 
-    return "Unknown location";
+    return 'Unknown location';
 }
 
 /* ---------------- component ---------------- */
@@ -194,7 +184,7 @@ export default function Delivery() {
     const visibleOrders = orders
         .filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null))
         .sort((a, b) => {
-            if (tab !== "ACTIVE") return 0;
+            if (tab !== 'ACTIVE') return 0;
             return a.deadlineMs - b.deadlineMs; // soonest first
         });
 
@@ -229,7 +219,7 @@ export default function Delivery() {
                         <Card key={order.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
                                 {/* Title row: deadline (ACTIVE) or Completed (PAST) */}
-                                {tab === "ACTIVE" ? (
+                                {tab === 'ACTIVE' ? (
                                     <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
                                         <Clock className="h-4 w-4" />
                                         <span>{formatDeadline(order.deadlineMs)}</span>
@@ -243,12 +233,10 @@ export default function Delivery() {
                                 {/* From / To (receiver omitted as requested) */}
                                 <div className="text-sm text-gray-700 space-y-1">
                                     <div>
-                                        <span className="font-medium">From:</span>{" "}
-                                        {formatAddress(order.fromAddress)}
+                                        <span className="font-medium">From:</span> {formatAddress(order.fromAddress)}
                                     </div>
                                     <div>
-                                        <span className="font-medium">To:</span>{" "}
-                                        {formatAddress(order.toAddress)}
+                                        <span className="font-medium">To:</span> {formatAddress(order.toAddress)}
                                     </div>
                                 </div>
 
@@ -256,7 +244,7 @@ export default function Delivery() {
                                 <div className="flex justify-between items-start gap-4 border-t pt-3">
                                     {/* Left: type/weight/distance/co2 */}
                                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        {parcel.type !== "NORMAL" && (
+                                        {parcel.type !== 'NORMAL' && (
                                             <div className="flex items-center gap-1 text-orange-600">
                                                 <AlertTriangle className="h-4 w-4" />
                                                 {parcel.type}
@@ -264,8 +252,7 @@ export default function Delivery() {
                                         )}
 
                                         <div className="text-gray-700">
-                                            <span className="font-medium">Weight:</span>{" "}
-                                            {parcel.weight} kg
+                                            <span className="font-medium">Weight:</span> {parcel.weight} kg
                                         </div>
 
                                         <div className="flex items-center gap-1 text-gray-700">
@@ -281,11 +268,9 @@ export default function Delivery() {
 
                                     {/* Right: price + mark delivered (ACTIVE only) */}
                                     <div className="flex items-center gap-3">
-                                        {tab === "ACTIVE" ? (
+                                        {tab === 'ACTIVE' ? (
                                             <>
-                                                <div className="font-semibold text-lg">
-                                                    €{price.toFixed(2)}
-                                                </div>
+                                                <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
                                                 <Button size="icon" onClick={() => markDelivered(order)}>
                                                     <Check />
                                                 </Button>
@@ -294,7 +279,8 @@ export default function Delivery() {
                                             <div className="text-sm font-medium text-gray-500">
                                                 €{price.toFixed(2)}
                                                 <span className="text-sm font-normal text-gray-600">
-                                                    {" "} reward received
+                                                    {' '}
+                                                    reward received
                                                 </span>
                                             </div>
                                         )}
