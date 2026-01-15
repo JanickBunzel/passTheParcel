@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
 import { sortItems, type SortOption } from '@/lib/utils';
 import type { OrderWithParcel } from '@/lib/types';
+import OrderDetailsModal from "@/components/modals/OrderDetailsModal";
 
 // -----------------------------
 // Types
@@ -14,6 +15,7 @@ import type { OrderWithParcel } from '@/lib/types';
 
 type ParcelRow = Database['public']['Tables']['parcels']['Row'];
 type AddressRow = Database['public']['Tables']['addresses']['Row'];
+type UserRow = Database['public']['Tables']['accounts']['Row'];
 
 // -----------------------------
 // Mock calculation helpers
@@ -81,6 +83,15 @@ function formatAddress(address?: AddressRow | null) {
     return "Unknown location";
 }
 
+function formatReceiver(
+    _parcel: ParcelRow,
+    receiver: UserRow
+): string {
+    return receiver.name?.trim()
+        || receiver.email
+        || "Unknown receiver";
+}
+
 // -----------------------------
 // Component
 // -----------------------------
@@ -91,6 +102,18 @@ export default function Orders() {
     const [user, setUser] = useState<any>(null);
     const [sortBy, setSortBy] = useState<SortOption>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState<OrderWithParcel | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+
+    const openDetails = (order: OrderWithParcel) => {
+        setSelectedOrder(order);
+        setDetailsOpen(true);
+    };
+
+    const closeDetails = () => {
+        setDetailsOpen(false);
+        setSelectedOrder(null);
+    };
 
     // Toggle filter dropdown
     const toggleFilter = () => setIsFilterOpen(prev => !prev);
@@ -235,7 +258,11 @@ export default function Orders() {
                 {sortedOrders.map(order => {
                     const { parcelData, distanceKm, price, co2 } = order;
                     return (
-                        <Card key={order.id} className="rounded-2xl shadow-sm">
+                        <Card
+                            key={order.id}
+                            className="rounded-2xl shadow-sm cursor-pointer"
+                            onClick={() => openDetails(order)}
+                        >
                             <CardContent className="p-4 space-y-3">
                                 {/* Title: deadline */}
                                 <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
@@ -282,7 +309,13 @@ export default function Orders() {
                                     {/* Right: keep price + addToCart unchanged */}
                                     <div className="flex items-center gap-3">
                                         <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
-                                        <Button size="icon" onClick={() => addToCart(order)}>
+                                        <Button
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                addToCart(order);
+                                            }}
+                                        >
                                             <Plus />
                                         </Button>
                                     </div>
@@ -292,6 +325,22 @@ export default function Orders() {
                     );
                 })}
             </div>
+
+            <OrderDetailsModal
+                open={detailsOpen}
+                order={selectedOrder}
+                onClose={closeDetails}
+                onTakeOrder={addToCart} // uses your existing logic; modal only shows if owner == null
+                formatAddress={formatAddress}
+                formatReceiver={formatReceiver}
+                formatDeadline={(deadlineMs: number) =>
+                    new Date(deadlineMs).toLocaleString(undefined, {
+                        weekday: "long",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })
+                }
+            />
         </div>
     );
 }

@@ -3,7 +3,7 @@ import { Button } from '@/components/shadcn/button';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
 import { supabase } from '@/lib/supabaseClient';
-import { Plus, MapPin, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, AlertTriangle } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 
