@@ -43,6 +43,7 @@ export function useClaimOrderMutation() {
         mutationFn: claimOrder,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders', 'available'] });
+            queryClient.invalidateQueries({ queryKey: ['parcels'] });
         },
     });
 }
