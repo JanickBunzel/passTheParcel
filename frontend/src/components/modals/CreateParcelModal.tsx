@@ -26,14 +26,15 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
 
     const [fromAddress, setFromAddress] = useState<string>(ownerAddress ?? '');
 
+    // Receiver is REQUIRED now: initialize as empty string (invalid until selected)
     const [form, setForm] = useState<ParcelInsert>({
         destination: '',
-        weight: 1,
+        weight: 100, // grams default
         description: '',
         type: 'NORMAL',
         owner: ownerId,
         sender: ownerId,
-        receiver: null,
+        receiver: '', // required
     });
 
     /* ---------- load accounts & addresses ---------- */
@@ -57,15 +58,24 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
 
     /* ---------- submit ---------- */
     const submit = async () => {
-        if (!form.destination || !fromAddress) {
-            alert('Please select from and destination addresses');
+        if (!fromAddress || !form.destination || !form.receiver) {
+            alert('Please select receiver, from address, and destination.');
+            return;
+        }
+
+        if (!form.weight || form.weight <= 0) {
+            alert('Please enter a valid weight.');
             return;
         }
 
         setLoading(true);
 
         /* 1️⃣ create parcel */
-        const { data: parcel, error: parcelError } = await supabase.from('parcels').insert(form).select().single();
+        const { data: parcel, error: parcelError } = await supabase
+            .from('parcels')
+            .insert(form)
+            .select()
+            .single();
 
         if (parcelError || !parcel) {
             console.error(parcelError);
@@ -109,84 +119,106 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
                 </div>
 
                 {/* From address */}
-                <select
-                    className="w-full border rounded-md p-2"
-                    value={fromAddress}
-                    onChange={(e) => setFromAddress(e.target.value)}
-                >
-                    <option value="">From address</option>
-                    {addresses.map((addr) => (
-                        <option key={addr.id} value={addr.id}>
-                            {addr.street} {addr.house_number}, {addr.city}
-                        </option>
-                    ))}
-                </select>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">From address</label>
+                    <select
+                        className="w-full border rounded-md p-2"
+                        value={fromAddress}
+                        onChange={(e) => setFromAddress(e.target.value)}
+                    >
+                        <option value="">Select from address</option>
+                        {addresses.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                                {addr.street} {addr.house_number}, {addr.city}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-                {/* Receiver */}
-                <select
-                    className="w-full border rounded-md p-2"
-                    value={form.receiver ?? ''}
-                    onChange={(e) =>
-                        setForm({
-                            ...form,
-                            receiver: e.target.value || null,
-                        })
-                    }
-                >
-                    <option value="">Receiver (optional)</option>
-                    {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id}>
-                            {acc.name ?? acc.email}
-                        </option>
-                    ))}
-                </select>
+                {/* Receiver (required) */}
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Receiver</label>
+                    <select
+                        className="w-full border rounded-md p-2"
+                        value={form.receiver ?? ''}
+                        onChange={(e) =>
+                            setForm({
+                                ...form,
+                                receiver: e.target.value,
+                            })
+                        }
+                    >
+                        <option value="">Select receiver</option>
+                        {accounts
+                            .filter((acc) => acc.id !== ownerId) // optional: avoid selecting yourself
+                            .map((acc) => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.name ?? acc.email}
+                                </option>
+                            ))}
+                    </select>
+                </div>
 
                 {/* Destination */}
-                <select
-                    className="w-full border rounded-md p-2"
-                    value={form.destination}
-                    onChange={(e) => setForm({ ...form, destination: e.target.value })}
-                >
-                    <option value="">Destination</option>
-                    {addresses.map((addr) => (
-                        <option key={addr.id} value={addr.id}>
-                            {addr.street} {addr.house_number}, {addr.city}
-                        </option>
-                    ))}
-                </select>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Destination</label>
+                    <select
+                        className="w-full border rounded-md p-2"
+                        value={form.destination}
+                        onChange={(e) => setForm({ ...form, destination: e.target.value })}
+                    >
+                        <option value="">Select destination</option>
+                        {addresses.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                                {addr.street} {addr.house_number}, {addr.city}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-                {/* Weight */}
-                <Input
-                    type="number"
-                    min={0.1}
-                    step={0.1}
-                    placeholder="Weight (kg)"
-                    value={form.weight}
-                    onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })}
-                />
+                {/* Weight (grams) */}
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Weight</label>
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={form.weight}
+                            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })}
+                        />
+                        <span className="text-sm text-gray-600 w-10">kg</span>
+                    </div>
+                </div>
 
                 {/* Type */}
-                <select
-                    className="w-full border rounded-md p-2"
-                    value={form.type}
-                    onChange={(e) =>
-                        setForm({
-                            ...form,
-                            type: e.target.value as ParcelInsert['type'],
-                        })
-                    }
-                >
-                    <option value="NORMAL">Normal</option>
-                    <option value="FRAGILE">Fragile</option>
-                    <option value="FOOD">Food</option>
-                </select>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <select
+                        className="w-full border rounded-md p-2"
+                        value={form.type}
+                        onChange={(e) =>
+                            setForm({
+                                ...form,
+                                type: e.target.value as ParcelInsert['type'],
+                            })
+                        }
+                    >
+                        <option value="NORMAL">Normal</option>
+                        <option value="FRAGILE">Fragile</option>
+                        <option value="FOOD">Food</option>
+                    </select>
+                </div>
 
                 {/* Description */}
-                <Textarea
-                    placeholder="Description (optional)"
-                    value={form.description ?? ''}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Description (optional)</label>
+                    <Textarea
+                        placeholder="E.g. Small book, keys, ..."
+                        value={form.description ?? ''}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                </div>
 
                 {/* Actions */}
                 <div className="flex justify-end gap-2">

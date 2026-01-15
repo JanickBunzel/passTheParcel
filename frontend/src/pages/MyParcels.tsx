@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/shadcn/button';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import { Plus, MapPin, Leaf, Clock, LogOut, AlertTriangle } from 'lucide-react';
+import { Plus, MapPin, Clock, AlertTriangle } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 
@@ -29,33 +28,32 @@ const mockCO2 = (km: number) => Math.round(km * 120);
 const mockPrice = (km: number, weight: number) => Number((1.5 + km * 0.4 + weight * 0.2).toFixed(2));
 
 // Address display helper
-function formatAddress(address?: any | null) {
-    if (!address) return 'Unknown location';
+function formatAddress(address?: AddressRow | null) {
+    if (!address) return "Unknown location";
 
-    const parts = [address.street, address.postcode, address.city, address.country].filter(Boolean);
+    const parts = [
+        address.street,
+        address.house_number,
+        address.postal_code,
+        address.city,
+        address.country,
+    ].filter(Boolean);
 
-    if (parts.length > 0) {
-        return parts.join(', ');
+    if (parts.length > 0) return parts.join(" ");
+
+    // fallback: coordinates in geodata if present
+    const g: any = address.geodata;
+    const lat = g?.lat ?? g?.latitude;
+    const lng = g?.lng ?? g?.longitude;
+    if (typeof lat === "number" && typeof lng === "number") {
+        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
     }
 
-    if (address.lat && address.lng) {
-        return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
-    }
-
-    return 'Unknown location';
-}
-
-// Receiver display helper
-function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
-    if (!parcel.receiver) return 'Unknown receiver';
-    if (!receiver) return 'Unknown receiver';
-
-    return receiver.name ?? receiver.email ?? 'Unknown receiver';
+    return "Unknown location";
 }
 
 /* ---------------- page ---------------- */
 const MyParcels = () => {
-    const { openLogoutModal } = useAuth();
     const { account } = useAccount();
 
     const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
@@ -124,9 +122,6 @@ const MyParcels = () => {
                     <Button size="icon" onClick={() => setCreateOpen(true)}>
                         <Plus />
                     </Button>
-                    <Button size="icon" variant="outline" onClick={openLogoutModal}>
-                        <LogOut />
-                    </Button>
                 </div>
             </div>
 
@@ -158,51 +153,68 @@ const MyParcels = () => {
                     <p className="text-sm text-gray-500">No {activeTab.toLowerCase()} parcels yet.</p>
                 )}
 
-                {visibleParcels.map((parcel) => (
-                    <Card key={parcel.id} className="rounded-2xl shadow-sm">
-                        <CardContent className="p-4 space-y-3">
-                            {/* Route + Receiver */}
-                            <div className="text-sm text-gray-700 space-y-1">
-                                <div>
-                                    <span className="font-medium">To:</span> {formatAddress(parcel.toAddress)}
+                {visibleParcels.map((parcel) => {
+                    const receiverName = parcel.toReceiver?.name ?? parcel.toReceiver?.email ?? "Receiver";
+                    const statusLabel =
+                        parcel.status
+                            ? parcel.status.replaceAll("_", " ").toLowerCase()
+                            : "unknown";
+
+                    return (
+                        <Card key={parcel.id} className="rounded-2xl shadow-sm">
+                            <CardContent className="p-4 space-y-3">
+                                {/* Title: Receiver */}
+                                <div className="text-green-700 font-semibold text-base">
+                                    {receiverName}
                                 </div>
-                                <div>
-                                    <span className="font-medium">Receiver:</span>{' '}
-                                    {formatReceiver(parcel, parcel.toReceiver)}
+
+                                {/* Route */}
+                                <div className="text-sm text-gray-700 space-y-1">
+                                    <div>
+                                        <span className="font-medium">To:</span>{" "}
+                                        {formatAddress(parcel.toAddress)}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Metrics row */}
-                            <div className="flex justify-between items-center gap-4 border-t pt-3">
-                                <div className="flex items-center gap-4 text-sm">
-                                    <div className="flex items-center gap-1">
-                                        <MapPin className="h-4 w-4 text-gray-500" />
-                                        {parcel.distanceKm} km
-                                    </div>
-
-                                    <div className="flex items-center gap-1 text-green-700">
-                                        <Leaf className="h-4 w-4" />
-                                        {parcel.co2} g CO₂
-                                    </div>
-
-                                    {parcel.type !== 'NORMAL' && (
-                                        <div className="flex items-center gap-1 text-orange-600">
-                                            <AlertTriangle className="h-4 w-4" />
-                                            {parcel.type}
+                                {/* Status + Metrics */}
+                                <div className="flex justify-between items-start gap-4 border-t pt-3">
+                                    {/* Left: status (+ ETA) */}
+                                    <div className="flex flex-col gap-1 text-sm">
+                                        <div className="font-medium text-gray-700">
+                                            Status:{" "}
+                                            <span className="capitalize">
+                {statusLabel}
+            </span>
                                         </div>
-                                    )}
-                                </div>
 
-                                {activeTab === 'ACTIVE' && (
-                                    <div className="flex items-center gap-3">
-                                        <Clock className="font-semibold text-lg" />
-                                        ETA: {parcel.eta}
+                                        {activeTab === "ACTIVE" && (
+                                            <div className="flex items-center gap-1 text-gray-700">
+                                                <Clock className="h-4 w-4" />
+                                                ETA: {parcel.eta}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+
+                                    {/* Right: description + flags */}
+                                    <div className="flex flex-col items-end gap-2 text-sm">
+                                        {parcel.description && (
+                                            <div className="text-gray-600 text-right max-w-[220px]">
+                                                {parcel.description}
+                                            </div>
+                                        )}
+
+                                        {parcel.type !== "NORMAL" && (
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                {parcel.type}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
             {account?.id && (

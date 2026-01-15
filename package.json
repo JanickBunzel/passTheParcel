@@ -8,5 +8,9 @@
     "preview": "pnpm --filter frontend preview",
     "lint": "pnpm --filter frontend lint",
     "typegen": "supabase gen types typescript --local > frontend/src/lib/database.types.ts && git diff --exit-code frontend/src/lib/database.types.ts"
+  },
+  "dependencies": {
+    "@vis.gl/react-maplibre": "^8.1.0",
+    "maplibre-gl": "^5.16.0"
   }
 }

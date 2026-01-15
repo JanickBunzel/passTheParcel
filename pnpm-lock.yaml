@@ -6,7 +6,14 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      '@vis.gl/react-maplibre':
+        specifier: ^8.1.0
+        version: 8.1.0(maplibre-gl@5.16.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      maplibre-gl:
+        specifier: ^5.16.0
+        version: 5.16.0
 
   frontend:
     dependencies:

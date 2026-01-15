@@ -117,10 +117,28 @@ export default function Orders() {
     }, []);
 
     const addToCart = async (order: OrderWithParcel) => {
-        if (!user) return console.warn('No user logged in!');
-        const { error } = await supabase.from('orders').update({ owner: user.id }).eq('id', order.id);
-        if (error) return console.error(error);
-        setOrders(prev => prev.filter(o => o.id !== order.id));
+        if (!user) {
+            console.warn("No user logged in!");
+            return;
+        }
+
+        const startedAt = new Date().toISOString();
+
+        const { error } = await supabase
+            .from("orders")
+            .update({
+                owner: user.id,
+                started: startedAt,
+            })
+            .eq("id", order.id);
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        // Remove from available orders list
+        setOrders((prev) => prev.filter((o) => o.id !== order.id));
     };
 
     // Apply sorting
