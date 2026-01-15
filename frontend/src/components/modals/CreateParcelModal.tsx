@@ -29,7 +29,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
     // Receiver is REQUIRED now: initialize as empty string (invalid until selected)
     const [form, setForm] = useState<ParcelInsert>({
         destination: '',
-        weight: 100, // grams default
+        weight: 0.1,
         description: '',
         type: 'NORMAL',
         owner: ownerId,
@@ -182,8 +182,8 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
                     <div className="flex items-center gap-2">
                         <Input
                             type="number"
-                            min={1}
-                            step={1}
+                            min={0.1}
+                            step={0.1}
                             value={form.weight}
                             onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })}
                         />

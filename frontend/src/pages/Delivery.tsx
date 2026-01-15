@@ -265,7 +265,7 @@ export default function Delivery() {
 
                                         <div className="text-gray-700">
                                             <span className="font-medium">Weight:</span>{" "}
-                                            {parcel.weight} g
+                                            {parcel.weight} kg
                                         </div>
 
                                         <div className="flex items-center gap-1 text-gray-700">
