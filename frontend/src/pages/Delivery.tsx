@@ -10,7 +10,6 @@ import { useAddressesQuery } from '@/api/addresses.api';
 import { useAccount } from '@/contexts/AccountContext';
 import { useAccountsQuery } from '@/api/accounts.api.ts';
 
-
 /* ---------------- mock helpers ---------------- */
 
 // Convert hash to [0, 1)
@@ -23,7 +22,7 @@ function hashToUnitFloat(orderId: string, salt: string) {
  * Distance: deterministic in range [0.2, 5.0] km based on orderId
  */
 export function calculateDistanceKmDet(orderId: string): number {
-    const u = hashToUnitFloat(orderId, "distance");
+    const u = hashToUnitFloat(orderId, 'distance');
     const km = 0.2 + u * 4.8;
     return Number(km.toFixed(2));
 }
@@ -33,7 +32,7 @@ export function calculateDistanceKmDet(orderId: string): number {
  */
 export function calculateCO2SavedDet(orderId: string, distanceKm: number): number {
     // Keep your old logic but deterministic; add a tiny deterministic jitter if desired
-    const jitter = 0.9 + hashToUnitFloat(orderId, "co2") * 0.2; // 0.9..1.1
+    const jitter = 0.9 + hashToUnitFloat(orderId, 'co2') * 0.2; // 0.9..1.1
     return Math.round(distanceKm * 120 * jitter);
 }
 
@@ -45,7 +44,7 @@ export function calculatePriceDet(orderId: string, parcel: ParcelRow, distanceKm
     const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
 
     // deterministic small surcharge/discount: -0.20 .. +0.30
-    const tweak = -0.2 + hashToUnitFloat(orderId, "price") * 0.5;
+    const tweak = -0.2 + hashToUnitFloat(orderId, 'price') * 0.5;
 
     const price = base + distanceKm * 0.4 + weightFactor + tweak;
     return Number(price.toFixed(2));
@@ -123,25 +122,28 @@ export default function Delivery() {
     const { data: receivers = [] } = useAccountsQuery();
     const markOrderDeliveredMutation = useMarkOrderDeliveredMutation();
 
-    // Enrich orders with parcel and address info
-    const orders: OrderWithParcel[] = ordersData.map((order) => {
-        const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-        const distanceKm = calculateDistanceKmDet(order.id);
-        const price = calculatePriceDet(order.id, parcel, distanceKm);
-        const co2 = calculateCO2SavedDet(order.id, distanceKm);
+    // Enrich orders with parcel and address info, skip orders with missing parcels
+    const orders: OrderWithParcel[] = ordersData
+        .map((order) => {
+            const parcel = parcelsData.find((p) => p.id === order.parcel);
+            if (!parcel) return null;
+            const distanceKm = calculateDistanceKmDet(order.id);
+            const price = calculatePriceDet(order.id, parcel, distanceKm);
+            const co2 = calculateCO2SavedDet(order.id, distanceKm);
 
-                return {
-                    ...order,
-                    deadline: mockDeadlineMs(order.id),
-                    parcelData: parcel,
-                    fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
-                    toAddress: addresses?.find((a) => a.id === order.to) ?? null,
-                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
-                    distanceKm,
-                    price,
-                    co2,
-                };
-            });
+            return {
+                ...order,
+                deadline: mockDeadlineMs(order.id),
+                parcelData: parcel,
+                fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
+                toAddress: addresses?.find((a) => a.id === order.to) ?? null,
+                receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
+                distanceKm,
+                price,
+                co2,
+            };
+        })
+        .filter((o): o is OrderWithParcel => o !== null);
 
     /* ---------- mark delivered ---------- */
     const markDelivered = async (order: OrderWithParcel) => {
@@ -193,7 +195,7 @@ export default function Delivery() {
                             className="rounded-2xl shadow-sm cursor-pointer"
                             onClick={() => openDetails(order)}
                         >
-                        <CardContent className="p-4 space-y-3">
+                            <CardContent className="p-4 space-y-3">
                                 {/* Title row: deadline (ACTIVE) or Completed (PAST) */}
                                 {tab === 'ACTIVE' ? (
                                     <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
@@ -283,9 +285,9 @@ export default function Delivery() {
                 formatReceiver={formatReceiver}
                 formatDeadline={(ms: number) =>
                     new Date(ms).toLocaleString(undefined, {
-                        weekday: "long",
-                        hour: "2-digit",
-                        minute: "2-digit",
+                        weekday: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
                     })
                 }
             />
