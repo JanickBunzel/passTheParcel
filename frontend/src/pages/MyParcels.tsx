@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/shadcn/button';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
-import { Plus, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, AlertTriangle, PackagePlus } from 'lucide-react';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 import type { AccountRow, AddressRow, ParcelRow } from '@/lib/types';
 import { useAllParcelsQuery } from '@/api/parcels.api';
@@ -172,7 +172,7 @@ const MyParcels = () => {
                 className="fixed right-10 bottom-24 z-50 h-14 w-14 rounded-full shadow-lg"
                 aria-label="Create parcel"
             >
-                <Plus className="h-6 w-6" />
+                <PackagePlus strokeWidth={1.5} className="size-6" />
             </Button>
 
             {account?.id && (

@@ -214,16 +214,17 @@ const Map = () => {
                             latitude={parcel.lat!}
                             anchor="bottom"
                             key={parcel.id}
-                            className="cursor-pointer"
+                            className="cursor-pointer flex flex-col items-center justify-center relative"
                             onClick={(e) => {
-                                // prevent map click propagation
-                                // @vis.gl/react-maplibre passes an event-like object; this is safe to attempt
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 (e as any)?.originalEvent?.stopPropagation?.();
                                 openParcelDetails(parcel.id);
                             }}
                         >
-                            <MapPin size={36} color="transparent" fill="var(--primary)" />
+                            <MapPin className="size-12" color="transparent" fill="var(--primary)" />
+                            <img
+                                className="absolute mb-1 left-1/2 -translate-x-1/2 size-5"
+                                src="apple-touch-icon.png"
+                            />
                         </Marker>
                     ))}
             </MapLibre>
