@@ -203,6 +203,17 @@ const MyParcels = () => {
                 })}
             </div>
 
+            {/* Floating create button (above bottom nav) */}
+            <Button
+                type="button"
+                size="icon"
+                onClick={() => setCreateOpen(true)}
+                className="fixed right-10 bottom-24 z-50 h-14 w-14 rounded-full shadow-lg"
+                aria-label="Create parcel"
+            >
+                <Plus className="h-6 w-6" />
+            </Button>
+
             {account?.id && (
                 <CreateParcelModal
                     open={createOpen}
