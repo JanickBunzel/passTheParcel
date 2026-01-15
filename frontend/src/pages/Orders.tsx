@@ -112,24 +112,27 @@ export default function Orders() {
     const toggleFilter = () => setIsFilterOpen((prev) => !prev);
 
     // Enrich orders with parcel, address, and receiver info
-    const orders: OrderWithParcel[] = ordersData.map((order) => {
-        const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-        const distanceKm = calculateDistanceKm(parcel);
-        const price = calculatePrice(parcel, distanceKm);
-        const co2 = calculateCO2Saved(parcel, distanceKm);
+    const orders: OrderWithParcel[] = ordersData
+        .map((order) => {
+            const parcel = parcelsData.find((p) => p.id === order.parcel);
+            if (!parcel) return undefined;
+            const distanceKm = calculateDistanceKm(parcel);
+            const price = calculatePrice(parcel, distanceKm);
+            const co2 = calculateCO2Saved(parcel, distanceKm);
 
-        return {
-            ...order,
-            deadline: mockDeadlineMs(order.id),
-            parcelData: parcel,
-            fromAddress: addresses.find((a) => a.id === order.from) ?? null,
-            toAddress: addresses.find((a) => a.id === order.to) ?? null,
-            receiver: receivers.find((r) => r.id === parcel.receiver) ?? null,
-            distanceKm,
-            price,
-            co2,
-        };
-    });
+            return {
+                ...order,
+                deadline: mockDeadlineMs(order.id),
+                parcelData: parcel,
+                fromAddress: addresses.find((a) => a.id === order.from) ?? null,
+                toAddress: addresses.find((a) => a.id === order.to) ?? null,
+                receiver: receivers.find((r) => r.id === parcel.receiver) ?? null,
+                distanceKm,
+                price,
+                co2,
+            } as OrderWithParcel;
+        })
+        .filter((o): o is OrderWithParcel => !!o);
 
     const addToCart = async (order: OrderWithParcel) => {
         if (!user) return;

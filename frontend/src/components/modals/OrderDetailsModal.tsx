@@ -1,7 +1,7 @@
-import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from "lucide-react";
-import { Button } from "@/components/shadcn/button";
-import { Card, CardContent } from "@/components/shadcn/card";
-import type { OrderWithParcel } from "@/lib/types"; // use your existing type
+import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from 'lucide-react';
+import { Button } from '@/components/shadcn/button';
+import { Card, CardContent } from '@/components/shadcn/card';
+import type { OrderWithParcel } from '@/lib/types'; // use your existing type
 
 type Props = {
     open: boolean;
@@ -14,14 +14,14 @@ type Props = {
 };
 
 export default function OrderDetailsModal({
-                                              open,
-                                              order,
-                                              onClose,
-                                              onTakeOrder,
-                                              formatAddress,
-                                              formatReceiver,
-                                              formatDeadline,
-                                          }: Props) {
+    open,
+    order,
+    onClose,
+    onTakeOrder,
+    formatAddress,
+    formatReceiver,
+    formatDeadline,
+}: Props) {
     if (!open || !order) return null;
 
     const parcel = (order as any).parcelData ?? (order as any).parcel ?? null;
@@ -30,8 +30,12 @@ export default function OrderDetailsModal({
     // If deadline is missing, show "—".
     const deadlineText =
         (order as any).deadline != null
-            ? (formatDeadline ? formatDeadline((order as any).deadline) : String((order as any).deadline))
-            : ((order as any).deadlineMs != null && formatDeadline ? formatDeadline((order as any).deadlineMs) : "—");
+            ? formatDeadline
+                ? formatDeadline((order as any).deadline)
+                : String((order as any).deadline)
+            : (order as any).deadlineMs != null && formatDeadline
+            ? formatDeadline((order as any).deadlineMs)
+            : '—';
 
     const canTake = order.owner == null; // only allow if unclaimed
 
@@ -59,7 +63,7 @@ export default function OrderDetailsModal({
                             </div>
 
                             {/* Placeholder QR block */}
-                            <div className="w-full aspect-square max-h-[260px] mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
+                            <div className="w-full aspect-square max-h-65 mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
                                 <div className="text-center">
                                     <div className="font-semibold">QR Code Placeholder</div>
                                     <div className="text-xs mt-1">Will be used for pickup / passing authentication</div>
@@ -73,15 +77,20 @@ export default function OrderDetailsModal({
                         <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 mt-0.5 text-gray-500" />
                             <div>
-                                <div><span className="font-medium">From:</span> {formatAddress((order as any).fromAddress)}</div>
-                                <div><span className="font-medium">To:</span> {formatAddress((order as any).toAddress)}</div>
+                                <div>
+                                    <span className="font-medium">From:</span>{' '}
+                                    {formatAddress((order as any).fromAddress)}
+                                </div>
+                                <div>
+                                    <span className="font-medium">To:</span> {formatAddress((order as any).toAddress)}
+                                </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <div>
-                                <span className="font-medium">Receiver:</span>{" "}
+                                <span className="font-medium">Receiver:</span>{' '}
                                 {formatReceiver(parcel, (order as any).receiver)}
                             </div>
                         </div>
@@ -107,18 +116,22 @@ export default function OrderDetailsModal({
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <div className="text-gray-500">Weight</div>
-                                    <div className="font-semibold">{parcel?.weight ?? "—"} g</div>
+                                    <div className="font-semibold">{parcel?.weight ?? '—'} g</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500">Distance</div>
-                                    <div className="font-semibold">{(order as any).distanceKm ?? "—"} km</div>
+                                    <div className="font-semibold">{(order as any).distanceKm ?? '—'} km</div>
                                 </div>
                                 <div>
-                                    <div className="text-gray-500 flex items-center gap-1"><Leaf className="h-4 w-4" /> CO₂ saved</div>
-                                    <div className="font-semibold">{(order as any).co2 ?? "—"} g</div>
+                                    <div className="text-gray-500 flex items-center gap-1">
+                                        <Leaf className="h-4 w-4" /> CO₂ saved
+                                    </div>
+                                    <div className="font-semibold">{(order as any).co2 ?? '—'} g</div>
                                 </div>
                                 <div>
-                                    <div className="text-gray-500 flex items-center gap-1"><Euro className="h-4 w-4" /> Reward</div>
+                                    <div className="text-gray-500 flex items-center gap-1">
+                                        <Euro className="h-4 w-4" /> Reward
+                                    </div>
                                     <div className="font-semibold">€{Number((order as any).price ?? 0).toFixed(2)}</div>
                                 </div>
                             </div>
@@ -127,10 +140,7 @@ export default function OrderDetailsModal({
 
                     {/* Action */}
                     {canTake && (
-                        <Button
-                            className="w-full"
-                            onClick={() => onTakeOrder?.(order)}
-                        >
+                        <Button className="w-full" onClick={() => onTakeOrder?.(order)}>
                             Take order / Add to cart
                         </Button>
                     )}

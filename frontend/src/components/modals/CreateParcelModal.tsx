@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/shadcn/button';
 import { Input } from '@/components/shadcn/input';
 import { Textarea } from '@/components/shadcn/textarea';
-import { supabase } from '@/lib/supabaseClient';
+import { useAccountsQuery } from '@/api/accounts.api';
+import { useAddressesQuery } from '@/api/addresses.api';
+import { useCreateParcelAndOrderMutation } from '@/api/parcels.api';
+import { useAccount } from '@/contexts/AccountContext';
 import { X } from 'lucide-react';
-import type { Database } from '@/lib/database.types';
-import type { AccountRow, AddressRow } from '@/lib/types';
-
-/* ---------- types ---------- */
-type ParcelInsert = Database['public']['Tables']['parcels']['Insert'];
-type OrderInsert = Database['public']['Tables']['orders']['Insert'];
+import type { OrderInsert, ParcelInsert } from '@/lib/types';
 
 type Props = {
     open: boolean;
@@ -20,8 +18,10 @@ type Props = {
 
 export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress }: Props) {
     const [loading, setLoading] = useState(false);
-    const [accounts, setAccounts] = useState<AccountRow[]>([]);
-    const [addresses, setAddresses] = useState<AddressRow[]>([]);
+    const createParcelAndOrderMutation = useCreateParcelAndOrderMutation();
+    const { account } = useAccount();
+    const { data: accounts = [] } = useAccountsQuery();
+    const { data: addresses = [] } = useAddressesQuery();
 
     const [fromAddress, setFromAddress] = useState<string>(ownerAddress ?? '');
 
@@ -31,28 +31,16 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
         weight: 0.1,
         description: '',
         type: 'NORMAL',
-        owner: ownerId,
-        sender: ownerId,
+        owner: account?.id ?? '',
+        sender: account?.id ?? '',
         receiver: '', // required
         // lat/lng will be set at submit time
     });
 
-    /* ---------- load accounts & addresses ---------- */
     useEffect(() => {
-        if (!open) return;
-
-        const loadData = async () => {
-            const [{ data: acc }, { data: addr }] = await Promise.all([
-                supabase.from('accounts').select('*'),
-                supabase.from('addresses').select('*'),
-            ]);
-
-            if (acc) setAccounts(acc);
-            if (addr) setAddresses(addr);
-        };
-
-        loadData();
-    }, [open]);
+        // Update owner/sender if account changes
+        setForm((prev) => ({ ...prev, owner: account?.id ?? '', sender: account?.id ?? '' }));
+    }, [account?.id]);
 
     if (!open) return null;
 
@@ -80,33 +68,16 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
         }
 
         // 📍 extract lat/lng from geodata
-        const { lat, lng } =
-            typeof fromAddr.geodata === 'string'
-                ? JSON.parse(fromAddr.geodata)
-                : fromAddr.geodata;
+        const { lat, lng } = typeof fromAddr.geodata === 'string' ? JSON.parse(fromAddr.geodata) : fromAddr.geodata;
 
-        // 1️⃣ create parcel with coords from address
+        // 1️⃣ create parcel and order using mutation
         const parcelPayload: ParcelInsert = {
             ...form,
             lat,
             lng,
         };
-
-        const { data: parcel, error: parcelError } = await supabase
-            .from('parcels')
-            .insert(parcelPayload)
-            .select()
-            .single();
-
-        if (parcelError || !parcel) {
-            console.error(parcelError);
-            setLoading(false);
-            return;
-        }
-
-        // 2️⃣ create initial order
-        const order: OrderInsert = {
-            parcel: parcel.id,
+        const orderPayload: OrderInsert = {
+            parcel: '', // will be set in mutation
             from: fromAddress,
             to: form.destination,
             owner: null,
@@ -115,17 +86,15 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
             finished: null,
         };
 
-        const { error: orderError } = await supabase.from('orders').insert(order);
-
-        setLoading(false);
-
-        if (orderError) {
-            console.error(orderError);
-            alert('Parcel created but order creation failed');
-            return;
+        try {
+            await createParcelAndOrderMutation.mutateAsync({ parcel: parcelPayload, order: orderPayload });
+            setLoading(false);
+            onClose();
+        } catch (error) {
+            setLoading(false);
+            alert('Parcel or order creation failed');
+            console.error(error);
         }
-
-        onClose();
     };
 
     return (
