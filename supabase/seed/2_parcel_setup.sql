@@ -93,7 +93,7 @@ select
     a_sender.id,
     addr.id,
     'FOOD',
-    'IN_DELIVERY',
+    'AWAITING_DELIVERY',
     1.2,
     'Fresh pasta package',
     48.132554,
@@ -122,7 +122,7 @@ select
     a_sender.id,
     addr.id,
     'FRAGILE',
-    'DELIVERED',
+    'AWAITING_DELIVERY',
     4.8,
     'Glassware set',
     48.142116,
@@ -180,7 +180,7 @@ select
     a_sender.id,
     addr.id,
     'FOOD',
-    'IN_DELIVERY',
+    'AWAITING_DELIVERY',
     2.8,
     'Parcel 5',
     48.134,
@@ -202,35 +202,22 @@ insert into public.orders (
     "to"
 )
 select
-    p.id,
-    null,
-    null,
-    null,
-    addr_from.id,
-    addr_to.id
+    p.id              as parcel,
+    null              as owner,
+    null              as started,
+    null              as finished,
+    a_rand.id         as "from",
+    p.destination     as "to"
 from public.parcels p
-    join public.addresses addr_from on addr_from.city = 'New York'
-    join public.addresses addr_to on addr_to.id = p.destination
-where p.description = 'Books shipment';
-
-insert into public.orders (
-    parcel,
-    owner,
-    started,
-    finished,
-    "from",
-    "to"
-)
-select
-    p.id,
-    null,
-    null,
-    null,
-    addr_from.id,
-    addr_to.id
-from public.parcels p
-    join public.addresses addr_from on addr_from.city = 'Berlin'
-    join public.addresses addr_to on addr_to.id = p.destination
-where p.description = 'Glassware set';
-
+         cross join lateral (
+    select a.id
+    from public.addresses a
+    order by random()
+        limit 1
+) a_rand
+where not exists (
+    select 1
+    from public.orders o
+    where o.parcel = p.id
+    );
 commit;
