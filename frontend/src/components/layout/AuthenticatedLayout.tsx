@@ -28,8 +28,10 @@ const AuthenticatedLayout = () => {
                 <TopBar />
             </div>
 
-            <main className="flex-1 min-h-0 overflow-scroll pb-20">
-                <Outlet />
+            <main className="flex-1 min-h-0 pb-20">
+                <div className="size-full overflow-scroll mb-20">
+                    <Outlet />
+                </div>
             </main>
 
             <div className="fixed bottom-0 left-0 right-0 w-full z-50 h-20">
