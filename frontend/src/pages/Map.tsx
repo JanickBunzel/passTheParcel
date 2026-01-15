@@ -3,7 +3,6 @@ import { Button } from '@/components/shadcn/button';
 import { Locate, MapPin, ZoomIn, ZoomOut } from 'lucide-react';
 import { Map as MapLibre, type MapRef, Marker } from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { cn } from '@/lib/utils';
 
 const MOCKED_PARCELS = [
     {
