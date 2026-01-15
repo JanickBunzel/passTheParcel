@@ -22,4 +22,5 @@ export type OrderWithParcel = OrderRow &
         distanceKm: number;
         price: number;     // ✅ MUST be required
         co2: number;
+        deadline: number;
     };

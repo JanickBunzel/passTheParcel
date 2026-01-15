@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { Button } from '@/components/shadcn/button';
 import { Input } from '@/components/shadcn/input';
-import { Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf } from 'lucide-react';
+import { Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/lib/database.types';
 import { sortItems, type SortOption } from '@/lib/utils';
@@ -13,9 +13,7 @@ import type { OrderWithParcel } from '@/lib/types';
 // -----------------------------
 
 type ParcelRow = Database['public']['Tables']['parcels']['Row'];
-type OrderRow = Database['public']['Tables']['orders']['Row'];
 type AddressRow = Database['public']['Tables']['addresses']['Row'];
-type UserRow = Database['public']['Tables']['accounts']['Row'];
 
 // -----------------------------
 // Mock calculation helpers
@@ -35,19 +33,43 @@ function calculateCO2Saved(_: ParcelRow, distanceKm: number): number {
     return Math.round(distanceKm * 120);
 }
 
-// Address & receiver helpers
-function formatAddress(address?: any | null) {
-    if (!address) return 'Unknown location';
-    const parts = [address.street, address.postcode, address.city, address.country].filter(Boolean);
-    if (parts.length > 0) return parts.join(', ');
-    if (address.lat && address.lng) return `(${address.lat.toFixed(4)}, ${address.lng.toFixed(4)})`;
-    return 'Unknown location';
+function mockDeadlineMs(): number {
+    const hours = Math.floor(Math.random() * 72) + 1;
+    return Date.now() + hours * 60 * 60 * 1000; // milliseconds timestamp
 }
 
-function formatReceiver(parcel: ParcelRow, receiver?: any | null) {
-    if (!parcel.receiver) return 'Unknown receiver';
-    if (!receiver) return 'Unknown receiver';
-    return receiver.name ?? receiver.email ?? 'Unknown receiver';
+function formatDeadline(deadlineMs: number) {
+    return new Date(deadlineMs).toLocaleString(undefined, {
+        weekday: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+// Address
+function formatAddress(address?: AddressRow | null) {
+    if (!address) return "Unknown location";
+
+    const parts = [
+        address.street,
+        address.house_number,
+        address.postal_code,
+        address.city,
+        address.country,
+    ].filter(Boolean);
+
+    if (parts.length > 0) return parts.join(" ");
+
+    // fallback: coordinates from geodata JSON
+    const g: any = address.geodata;
+    const lat = g?.lat ?? g?.latitude;
+    const lng = g?.lng ?? g?.longitude;
+
+    if (typeof lat === "number" && typeof lng === "number") {
+        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
+
+    return "Unknown location";
 }
 
 // -----------------------------
@@ -101,13 +123,14 @@ export default function Orders() {
 
                 return {
                     ...order,
+                    deadline: mockDeadlineMs(),
                     parcelData: parcel,
                     fromAddress: addresses?.find(a => a.id === order.from) ?? null,
                     toAddress: addresses?.find(a => a.id === order.to) ?? null,
                     receiver: receivers?.find(r => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
-                    co2
+                    co2,
                 };
             });
 
@@ -205,15 +228,38 @@ export default function Orders() {
                     return (
                         <Card key={order.id} className="rounded-2xl shadow-sm">
                             <CardContent className="p-4 space-y-3">
-                                <div className="text-sm text-gray-700 space-y-1">
-                                    <div><span className="font-medium">From:</span> {formatAddress(order.fromAddress)}</div>
-                                    <div><span className="font-medium">To:</span> {formatAddress(order.toAddress)}</div>
-                                    <div><span className="font-medium">Receiver:</span> {formatReceiver(parcelData, order.receiver)}</div>
+                                {/* Title: deadline */}
+                                <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{formatDeadline(order.deadline)}</span>
                                 </div>
 
-                                <div className="flex justify-between items-center gap-4 border-t pt-3">
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-1">
+                                {/* From / To */}
+                                <div className="text-sm text-gray-700 space-y-1">
+                                    <div>
+                                        <span className="font-medium">From:</span> {formatAddress(order.fromAddress)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">To:</span> {formatAddress(order.toAddress)}
+                                    </div>
+                                </div>
+
+                                {/* Bottom row: metrics (left) + price/action (right) */}
+                                <div className="flex justify-between items-start gap-4 border-t pt-3">
+                                    {/* Left: type/weight/distance/co2 */}
+                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                        {parcelData.type !== "NORMAL" && (
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                {parcelData.type}
+                                            </div>
+                                        )}
+
+                                        <div className="text-gray-700">
+                                            <span className="font-medium">Weight:</span> {parcelData.weight} kg
+                                        </div>
+
+                                        <div className="flex items-center gap-1 text-gray-700">
                                             <MapPin className="h-4 w-4 text-gray-500" />
                                             {distanceKm} km
                                         </div>
@@ -222,15 +268,9 @@ export default function Orders() {
                                             <Leaf className="h-4 w-4" />
                                             {co2} g CO₂
                                         </div>
-
-                                        {parcelData.type !== 'NORMAL' && (
-                                            <div className="flex items-center gap-1 text-orange-600">
-                                                <AlertTriangle className="h-4 w-4" />
-                                                {parcelData.type}
-                                            </div>
-                                        )}
                                     </div>
 
+                                    {/* Right: keep price + addToCart unchanged */}
                                     <div className="flex items-center gap-3">
                                         <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
                                         <Button size="icon" onClick={() => addToCart(order)}>
