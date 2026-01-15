@@ -34,6 +34,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
         owner: ownerId,
         sender: ownerId,
         receiver: '', // required
+        // lat/lng will be set at submit time
     });
 
     /* ---------- load accounts & addresses ---------- */
@@ -69,8 +70,33 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
 
         setLoading(true);
 
-        /* 1️⃣ create parcel */
-        const { data: parcel, error: parcelError } = await supabase.from('parcels').insert(form).select().single();
+        // 🔍 find selected "from" address
+        const fromAddr = addresses.find((a) => a.id === fromAddress);
+
+        if (!fromAddr || !fromAddr.geodata) {
+            alert('Selected from address has no geodata.');
+            setLoading(false);
+            return;
+        }
+
+        // 📍 extract lat/lng from geodata
+        const { lat, lng } =
+            typeof fromAddr.geodata === 'string'
+                ? JSON.parse(fromAddr.geodata)
+                : fromAddr.geodata;
+
+        // 1️⃣ create parcel with coords from address
+        const parcelPayload: ParcelInsert = {
+            ...form,
+            lat,
+            lng,
+        };
+
+        const { data: parcel, error: parcelError } = await supabase
+            .from('parcels')
+            .insert(parcelPayload)
+            .select()
+            .single();
 
         if (parcelError || !parcel) {
             console.error(parcelError);
@@ -78,7 +104,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
             return;
         }
 
-        /* 2️⃣ create initial order */
+        // 2️⃣ create initial order
         const order: OrderInsert = {
             parcel: parcel.id,
             from: fromAddress,
@@ -171,7 +197,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
                     </select>
                 </div>
 
-                {/* Weight (grams) */}
+                {/* Weight (kg) */}
                 <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-700">Weight</label>
                     <div className="flex items-center gap-2">
