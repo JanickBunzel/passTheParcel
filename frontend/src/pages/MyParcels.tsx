@@ -111,20 +111,6 @@ const MyParcels = () => {
 
     return (
         <div className="flex flex-col">
-            {/* Header */}
-            <div className="p-4 bg-white shadow-sm flex items-center justify-between">
-                <div>
-                    <h1 className="text-lg font-semibold">My Parcels</h1>
-                    <p className="text-xs text-gray-500">Logged in as {account?.email}</p>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button size="icon" onClick={() => setCreateOpen(true)}>
-                        <Plus />
-                    </Button>
-                </div>
-            </div>
-
             {/* Tabs */}
             <div className="flex bg-white border-b">
                 <button
