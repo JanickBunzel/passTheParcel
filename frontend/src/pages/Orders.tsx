@@ -116,6 +116,7 @@ export default function Orders() {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterType, setFilterType] = useState<ParcelRow['type'] | null>(null);
+    const [maxWeightKg, setMaxWeightKg] = useState<number | null>(null);
 
     // React Query hooks
     const { data: ordersData = [] } = useAvailableOrdersQuery();
@@ -170,8 +171,11 @@ export default function Orders() {
     };
 
     // Apply filtering then sorting
-    const filteredOrders = orders.filter((order) => !filterType || order.parcelData.type === filterType);
-
+    const filteredOrders = orders.filter(order => {
+        if (filterType && order.parcelData.type !== filterType) return false;
+        if (maxWeightKg !== null && (order.parcelData.weight ?? 0) > maxWeightKg) return false;
+        return true;
+    });
     const sortedOrders = sortItems(filteredOrders, sortBy);
 
     return (
@@ -233,31 +237,53 @@ export default function Orders() {
                 </Button>
 
                 {isFilterOpen && (
-                    <div className="absolute right-0 top-14 w-40 bg-white border rounded-md shadow-md z-10 p-2 space-y-1">
-                        <button
-                            className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                            onClick={() => {
-                                setFilterType(null);
-                                setIsFilterOpen(false);
-                            }}
-                        >
-                            All types
-                        </button>
-
-                        {availableParcelTypes.map((type) => (
+                    <div className="absolute right-0 top-14 w-48 bg-white border rounded-md shadow-md z-10 p-2 space-y-2">
+                        {/* ---- TYPE FILTER ---- */}
+                        <div className="space-y-1">
                             <button
-                                key={type}
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
-                                onClick={() => {
-                                    setFilterType(type);
-                                    setIsFilterOpen(false);
-                                }}
+                                onClick={() => setFilterType(null)}
                             >
-                                {type}
+                                All types
                             </button>
-                        ))}
+
+                            {availableParcelTypes.map((type) => (
+                                <button
+                                    key={type}
+                                    className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
+                                    onClick={() => setFilterType(type)}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* ---- WEIGHT FILTER ---- */}
+                        <div className="border-t pt-2 space-y-2">
+                            <label className="block text-xs font-medium text-gray-600">
+                                Parcel weight {maxWeightKg !== null ? `≤ ${maxWeightKg} kg` : '(any)'}
+                            </label>
+
+                            <input
+                                type="range"
+                                min={0}
+                                max={10}
+                                step={0.05}
+                                value={maxWeightKg ?? 10}
+                                onChange={(e) => setMaxWeightKg(Number(e.target.value))}
+                                className="w-full"
+                            />
+
+                            <button
+                                className="text-xs text-gray-500 hover:underline"
+                                onClick={() => setMaxWeightKg(null)}
+                            >
+                                Reset weight
+                            </button>
+                        </div>
                     </div>
                 )}
+
             </div>
 
             {/* Order list */}
