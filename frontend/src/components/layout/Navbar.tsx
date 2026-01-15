@@ -30,7 +30,7 @@ const Navbar = () => {
     const getIsActive = useCallback((path: string) => currentPath === path, [currentPath]);
 
     return (
-        <div className="w-full border-t px-2 py-3 flex gap-2 items-center justify-around bg-white">
+        <div className="size-full border-t px-2 py-3 flex gap-2 items-center justify-around bg-white">
             {navBarItems.map(({ path, name, icon: Icon }) => (
                 <Link
                     key={path}

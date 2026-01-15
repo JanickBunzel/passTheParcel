@@ -50,7 +50,7 @@ const Login = () => {
     const loginLoading = authLoading || accountLoading;
 
     return (
-        <div className="h-screen flex flex-col gap-10 items-center justify-center px-4 sm:px-0 pb-24">
+        <div className="h-screen flex flex-col gap-4 sm:gap-10 items-center justify-center px-4 sm:px-0 pb-24">
             {(isDev || SHOW_TEST_USER_LOGINS) && (
                 <div className="fixed bottom-4 left-0 w-full flex gap-2 flex-wrap justify-center">
                     {TEST_USERS.map((user) => (
@@ -70,11 +70,11 @@ const Login = () => {
 
             <h1 className="mb-8 uppercase text-primary text-center text-4xl font-bold">Pass The Parcel</h1>
 
-            <Card className="sm:w-96 shadow-md py-6 px-0 gap-2 rounded-xl">
+            <Card className="sm:w-96 shadow-md p-6 gap-2 rounded-xl">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Login</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <form onSubmit={onSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
