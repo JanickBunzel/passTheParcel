@@ -3,17 +3,9 @@ import { Card, CardContent } from '@/components/shadcn/card';
 import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/shadcn/button';
-import type { AddressRow, OrderRow, ParcelRow } from '@/lib/types';
+import type { AccountRow, AddressRow, ParcelRow, OrderWithParcel } from '@/lib/types';
+import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 
-type OrderWithParcel = Omit<OrderRow, 'parcel'> & {
-    parcel: ParcelRow;
-    fromAddress?: AddressRow | null;
-    toAddress?: AddressRow | null;
-    distanceKm: number;
-    price: number;
-    co2: number;
-    deadlineMs: number;
-};
 
 /* ---------------- mock helpers ---------------- */
 
@@ -66,12 +58,28 @@ function formatAddress(address?: AddressRow | null) {
     return 'Unknown location';
 }
 
+function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
+    return receiver.name?.trim() || receiver.email || 'Unknown receiver';
+}
+
 /* ---------------- component ---------------- */
 
 export default function Delivery() {
     const [orders, setOrders] = useState<OrderWithParcel[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
     const [tab, setTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
+    const [selectedOrder, setSelectedOrder] = useState<OrderWithParcel | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+
+    const openDetails = (order: OrderWithParcel) => {
+        setSelectedOrder(order);
+        setDetailsOpen(true);
+    };
+
+    const closeDetails = () => {
+        setDetailsOpen(false);
+        setSelectedOrder(null);
+    };
 
     /* ---------- current user ---------- */
     useEffect(() => {
@@ -85,24 +93,24 @@ export default function Delivery() {
         if (!userId) return;
 
         const fetchOrders = async () => {
-            const { data: ordersData } = await supabase.from('orders').select('*').eq('owner', userId);
-
-            if (!ordersData || ordersData.length === 0) {
-                setOrders([]);
-                return;
-            }
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('owner', userId);
+            if (ordersError || !ordersData) return console.error(ordersError);
 
             const parcelIds = ordersData.map((o) => o.parcel);
+            const { data: parcelsData, error: parcelsError } = await supabase
+                .from('parcels')
+                .select('*')
+                .in('id', parcelIds);
+            if (parcelsError || !parcelsData) return console.error(parcelsError);
 
-            const { data: parcelsData } = await supabase.from('parcels').select('*').in('id', parcelIds);
-
-            if (!parcelsData) return;
-
-            // Filter out nulls for addressIds and receiverIds
             const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
             const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
 
             const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
+            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
 
             const enriched: OrderWithParcel[] = ordersData.map((order) => {
                 const parcel = parcelsData.find((p) => p.id === order.parcel)!;
@@ -111,22 +119,15 @@ export default function Delivery() {
                 const co2 = calculateCO2Saved(parcel, distanceKm);
 
                 return {
-                    // Explicitly assign all OrderRow fields except 'parcel', then override with full parcel object
-                    id: order.id,
-                    owner: order.owner,
-                    parcel: parcel,
-                    from: order.from,
-                    to: order.to,
-                    started: order.started,
-                    finished: order.finished,
-                    next: order.next,
-                    // Enriched fields
+                    ...order,
+                    deadline: mockDeadlineMs(order.id),
+                    parcelData: parcel,
                     fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
                     toAddress: addresses?.find((a) => a.id === order.to) ?? null,
+                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
                     distanceKm,
                     price,
                     co2,
-                    deadlineMs: mockDeadlineMs(order.id),
                 };
             });
 
@@ -150,7 +151,7 @@ export default function Delivery() {
         const { error: parcelError } = await supabase
             .from('parcels')
             .update({ status: 'DELIVERED' })
-            .eq('id', order.parcel.id);
+            .eq('id', order.parcelData.id);
 
         if (parcelError) {
             console.error(parcelError);
@@ -159,24 +160,15 @@ export default function Delivery() {
 
         // update local state
         setOrders((prev) =>
-            prev.map((o) => {
-                if (o.id === order.id) {
-                    // Only spread if o.parcel is an object
-                    if (o.parcel && typeof o.parcel === 'object' && !Array.isArray(o.parcel)) {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                            parcel: { ...o.parcel, status: 'DELIVERED' },
-                        };
-                    } else {
-                        return {
-                            ...o,
-                            finished: finishedAt,
-                        };
+            prev.map((o) =>
+                o.id === order.id
+                    ? {
+                        ...o,
+                        finished: finishedAt,
+                        parcel: { ...order.parcel, status: "DELIVERED" },
                     }
-                }
-                return o;
-            })
+                    : o
+            )
         );
     };
 
@@ -185,7 +177,7 @@ export default function Delivery() {
         .filter((o) => (tab === 'ACTIVE' ? o.finished === null : o.finished !== null))
         .sort((a, b) => {
             if (tab !== 'ACTIVE') return 0;
-            return a.deadlineMs - b.deadlineMs; // soonest first
+            return a.deadline - b.deadline; // soonest first
         });
 
     return (
@@ -213,16 +205,20 @@ export default function Delivery() {
                 )}
 
                 {visibleOrders.map((order) => {
-                    const { parcel, distanceKm, price, co2 } = order;
+                    const { parcelData, distanceKm, price, co2 } = order;
 
                     return (
-                        <Card key={order.id} className="rounded-2xl shadow-sm">
-                            <CardContent className="p-4 space-y-3">
+                        <Card
+                            key={order.id}
+                            className="rounded-2xl shadow-sm cursor-pointer"
+                            onClick={() => openDetails(order)}
+                        >
+                        <CardContent className="p-4 space-y-3">
                                 {/* Title row: deadline (ACTIVE) or Completed (PAST) */}
                                 {tab === 'ACTIVE' ? (
                                     <div className="flex items-center gap-2 text-green-700 font-semibold text-base">
                                         <Clock className="h-4 w-4" />
-                                        <span>{formatDeadline(order.deadlineMs)}</span>
+                                        <span>{formatDeadline(order.deadline)}</span>
                                     </div>
                                 ) : (
                                     <div className="text-green-700 font-semibold text-base leading-tight">
@@ -244,15 +240,15 @@ export default function Delivery() {
                                 <div className="flex justify-between items-start gap-4 border-t pt-3">
                                     {/* Left: type/weight/distance/co2 */}
                                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        {parcel.type !== 'NORMAL' && (
+                                        {parcelData.type !== 'NORMAL' && (
                                             <div className="flex items-center gap-1 text-orange-600">
                                                 <AlertTriangle className="h-4 w-4" />
-                                                {parcel.type}
+                                                {parcelData.type}
                                             </div>
                                         )}
 
                                         <div className="text-gray-700">
-                                            <span className="font-medium">Weight:</span> {parcel.weight} kg
+                                            <span className="font-medium">Weight:</span> {parcelData.weight} kg
                                         </div>
 
                                         <div className="flex items-center gap-1 text-gray-700">
@@ -271,7 +267,13 @@ export default function Delivery() {
                                         {tab === 'ACTIVE' ? (
                                             <>
                                                 <div className="font-semibold text-lg">€{price.toFixed(2)}</div>
-                                                <Button size="icon" onClick={() => markDelivered(order)}>
+                                                <Button
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        markDelivered(order);
+                                                    }}
+                                                >
                                                     <Check />
                                                 </Button>
                                             </>
@@ -291,6 +293,21 @@ export default function Delivery() {
                     );
                 })}
             </div>
+
+            <OrderDetailsModal
+                open={detailsOpen}
+                order={selectedOrder}
+                onClose={closeDetails}
+                formatAddress={formatAddress}
+                formatReceiver={formatReceiver}
+                formatDeadline={(ms: number) =>
+                    new Date(ms).toLocaleString(undefined, {
+                        weekday: "long",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })
+                }
+            />
         </div>
     );
 }
