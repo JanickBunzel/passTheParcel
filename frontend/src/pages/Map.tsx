@@ -27,38 +27,6 @@ function mockDeadlineMs(seed: string) {
     const hours = (h % 72) + 1;
     return Date.now() + hours * 60 * 60 * 1000;
 }
-function formatDeadline(ms: number) {
-    return new Date(ms).toLocaleString(undefined, {
-        weekday: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
-
-function formatAddress(address?: AddressRow | null) {
-    if (!address) return 'Unknown location';
-
-    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
-        Boolean
-    );
-
-    if (parts.length > 0) return parts.join(' ');
-
-    const g: any = address.geodata;
-    const lat = g?.lat ?? g?.latitude;
-    const lng = g?.lng ?? g?.longitude;
-
-    if (typeof lat === 'number' && typeof lng === 'number') {
-        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-    }
-
-    return 'Unknown location';
-}
-
-// ensured never null
-function formatReceiver(_parcel: ParcelRow, receiver: AccountRow) {
-    return receiver.name?.trim() || receiver.email;
-}
 
 const Map = () => {
     const navigate = useNavigate();
@@ -240,25 +208,12 @@ const Map = () => {
                     ))}
             </MapLibre>
 
-            {/* Modal */}
             <OrderDetailsModal
                 open={detailsOpen}
                 order={selectedOrder}
                 onClose={closeDetails}
-                // only show button if owner == null; modal already handles this
                 onTakeOrder={(o) => addToCart(o)}
-                currentUserId={user?.id ?? null}
-                formatAddress={formatAddress}
-                formatReceiver={formatReceiver}
-                formatDeadline={formatDeadline}
             />
-
-            {/* Optional small loading indicator */}
-            {loadingDetails && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 border rounded-full px-3 py-1 text-sm shadow">
-                    Loading…
-                </div>
-            )}
         </div>
     );
 };

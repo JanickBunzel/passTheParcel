@@ -7,7 +7,7 @@ import { useAvailableOrdersQuery, useClaimOrderMutation } from '@/api/orders.api
 import { useAllParcelsQuery } from '@/api/parcels.api';
 import { useAddressesQuery } from '@/api/addresses.api';
 import { useAccountsQuery } from '@/api/accounts.api';
-import { sortItems, type SortOption } from '@/lib/utils';
+import { formatAddress, formatDeadline, sortItems, type SortOption } from '@/lib/utils';
 import type { AccountRow, AddressRow, OrderWithParcel, ParcelRow } from '@/lib/types';
 import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 import { useAccount } from '@/contexts/AccountContext';
@@ -67,45 +67,6 @@ function mockDeadlineMs(orderId: string) {
     const hours = (h % 72) + 1;
     return Date.now() + hours * 60 * 60 * 1000;
 }
-
-// Show weekday + time (no "deadline" text)
-function formatDeadline(ms: number) {
-    return new Date(ms).toLocaleString(undefined, {
-        weekday: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
-
-// Address
-function formatAddress(address?: AddressRow | null) {
-    if (!address) return 'Unknown location';
-
-    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
-        Boolean
-    );
-
-    if (parts.length > 0) return parts.join(' ');
-
-    // fallback: coordinates from geodata JSON
-    const g: any = address.geodata;
-    const lat = g?.lat ?? g?.latitude;
-    const lng = g?.lng ?? g?.longitude;
-
-    if (typeof lat === 'number' && typeof lng === 'number') {
-        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-    }
-
-    return 'Unknown location';
-}
-
-function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
-    return receiver.name?.trim() || receiver.email || 'Unknown receiver';
-}
-
-// -----------------------------
-// Component
-// -----------------------------
 
 export default function Orders() {
     const navigate = useNavigate();
@@ -367,16 +328,6 @@ export default function Orders() {
                 order={selectedOrder}
                 onClose={closeDetails}
                 onTakeOrder={addToCart} // uses your existing logic; modal only shows if owner == null
-                currentUserId={user?.id ?? null}
-                formatAddress={formatAddress}
-                formatReceiver={formatReceiver}
-                formatDeadline={(deadlineMs: number) =>
-                    new Date(deadlineMs).toLocaleString(undefined, {
-                        weekday: 'long',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    })
-                }
             />
         </div>
     );

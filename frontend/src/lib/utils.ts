@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { SortableParcel } from '@/lib/types'; // adjust path if needed
+import type { AccountRow, AddressRow, ParcelRow, SortableParcel } from '@/lib/types'; // adjust path if needed
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -14,17 +14,9 @@ export function formatCentsToEuroString(cents?: number | null): string {
     });
 }
 
-export type SortOption =
-    | 'priceAsc'
-    | 'priceDesc'
-    | 'distanceAsc'
-    | 'distanceDesc'
-    | null;
+export type SortOption = 'priceAsc' | 'priceDesc' | 'distanceAsc' | 'distanceDesc' | null;
 
-export function sortItems<T extends SortableParcel>(
-    items: T[],
-    sortBy: SortOption
-): T[] {
+export function sortItems<T extends SortableParcel>(items: T[], sortBy: SortOption): T[] {
     if (!sortBy) return items;
 
     return [...items].sort((a, b) => {
@@ -40,5 +32,38 @@ export function sortItems<T extends SortableParcel>(
             default:
                 return 0;
         }
+    });
+}
+
+// Address display helper
+export function formatAddress(address?: AddressRow | null) {
+    if (!address) return 'Unknown location';
+
+    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
+        Boolean
+    );
+
+    if (parts.length > 0) return parts.join(' ');
+
+    const g: any = address.geodata;
+    const lat = g?.lat ?? g?.latitude;
+    const lng = g?.lng ?? g?.longitude;
+
+    if (typeof lat === 'number' && typeof lng === 'number') {
+        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
+
+    return 'Unknown location';
+}
+
+export function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
+    return receiver.name?.trim() || receiver.email || 'Unknown receiver';
+}
+
+export function formatDeadline(ms: number): string {
+    return new Date(ms).toLocaleString(undefined, {
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }

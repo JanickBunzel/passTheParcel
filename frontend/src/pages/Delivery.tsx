@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
 import { Button } from '@/components/shadcn/button';
-import type { AccountRow, AddressRow, ParcelRow, OrderWithParcel } from '@/lib/types';
+import type { ParcelRow, OrderWithParcel } from '@/lib/types';
 import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
 import { useDeliveryOrdersQuery, useMarkOrderDeliveredMutation } from '@/api/delivery.api';
 import { useAllParcelsQuery } from '@/api/parcels.api';
 import { useAddressesQuery } from '@/api/addresses.api';
 import { useAccount } from '@/contexts/AccountContext';
 import { useAccountsQuery } from '@/api/accounts.api.ts';
+import { formatAddress, formatDeadline } from '@/lib/utils';
 
 /* ---------------- mock helpers ---------------- */
 
@@ -61,40 +62,6 @@ function mockDeadlineMs(orderId: string) {
     const h = hashToInt(orderId);
     const hours = (h % 72) + 1;
     return Date.now() + hours * 60 * 60 * 1000;
-}
-
-// Show weekday + time (no "deadline" text)
-function formatDeadline(ms: number) {
-    return new Date(ms).toLocaleString(undefined, {
-        weekday: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
-
-// Address display helper
-function formatAddress(address?: AddressRow | null) {
-    if (!address) return 'Unknown location';
-
-    const parts = [address.street, address.house_number, address.postal_code, address.city, address.country].filter(
-        Boolean
-    );
-
-    if (parts.length > 0) return parts.join(' ');
-
-    const g: any = address.geodata;
-    const lat = g?.lat ?? g?.latitude;
-    const lng = g?.lng ?? g?.longitude;
-
-    if (typeof lat === 'number' && typeof lng === 'number') {
-        return `(${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-    }
-
-    return 'Unknown location';
-}
-
-function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
-    return receiver.name?.trim() || receiver.email || 'Unknown receiver';
 }
 
 /* ---------------- component ---------------- */
@@ -276,21 +243,7 @@ export default function Delivery() {
                 })}
             </div>
 
-            <OrderDetailsModal
-                open={detailsOpen}
-                order={selectedOrder}
-                onClose={closeDetails}
-                currentUserId={user?.id ?? null}
-                formatAddress={formatAddress}
-                formatReceiver={formatReceiver}
-                formatDeadline={(ms: number) =>
-                    new Date(ms).toLocaleString(undefined, {
-                        weekday: 'long',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    })
-                }
-            />
+            <OrderDetailsModal open={detailsOpen} order={selectedOrder} onClose={closeDetails} />
         </div>
     );
 }
