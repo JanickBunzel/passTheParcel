@@ -13,11 +13,43 @@ import { useAccountsQuery } from '@/api/accounts.api.ts';
 
 /* ---------------- mock helpers ---------------- */
 
-const calculateDistanceKm = () => Number((Math.random() * 4.8 + 0.2).toFixed(2));
+// Convert hash to [0, 1)
+function hashToUnitFloat(orderId: string, salt: string) {
+    const h = hashToInt(`${orderId}:${salt}`);
+    return h / 0xffffffff; // 0..1
+}
 
-const calculatePrice = (parcel: ParcelRow, km: number) => Number((1 + km * 0.4 + parcel.weight * 0.2).toFixed(2));
+/**
+ * Distance: deterministic in range [0.2, 5.0] km based on orderId
+ */
+export function calculateDistanceKmDet(orderId: string): number {
+    const u = hashToUnitFloat(orderId, "distance");
+    const km = 0.2 + u * 4.8;
+    return Number(km.toFixed(2));
+}
 
-const calculateCO2Saved = (_: ParcelRow, km: number) => Math.round(km * 120);
+/**
+ * CO2 saved: deterministic, derived from distance (and optionally weight)
+ */
+export function calculateCO2SavedDet(orderId: string, distanceKm: number): number {
+    // Keep your old logic but deterministic; add a tiny deterministic jitter if desired
+    const jitter = 0.9 + hashToUnitFloat(orderId, "co2") * 0.2; // 0.9..1.1
+    return Math.round(distanceKm * 120 * jitter);
+}
+
+/**
+ * Price: deterministic from distance + parcel weight + small deterministic surcharge
+ */
+export function calculatePriceDet(orderId: string, parcel: ParcelRow, distanceKm: number): number {
+    const base = 1.0;
+    const weightFactor = parcel.weight ? parcel.weight * 0.2 : 0.5;
+
+    // deterministic small surcharge/discount: -0.20 .. +0.30
+    const tweak = -0.2 + hashToUnitFloat(orderId, "price") * 0.5;
+
+    const price = base + distanceKm * 0.4 + weightFactor + tweak;
+    return Number(price.toFixed(2));
+}
 
 function hashToInt(str: string) {
     let h = 0;
@@ -94,9 +126,9 @@ export default function Delivery() {
     // Enrich orders with parcel and address info
     const orders: OrderWithParcel[] = ordersData.map((order) => {
         const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-        const distanceKm = calculateDistanceKm();
-        const price = calculatePrice(parcel, distanceKm);
-        const co2 = calculateCO2Saved(parcel, distanceKm);
+        const distanceKm = calculateDistanceKmDet(order.id);
+        const price = calculatePriceDet(order.id, parcel, distanceKm);
+        const co2 = calculateCO2SavedDet(order.id, distanceKm);
 
                 return {
                     ...order,
