@@ -1,13 +1,13 @@
 import { Link, useRouter } from '@tanstack/react-router';
-import { Container, Map, Package, Route, type LucideIcon } from 'lucide-react';
+import { Map, Package, Route, ScrollText, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 
 const navBarItems: NavBarItem[] = [
     { path: '/map', name: 'Map', icon: Map },
-    { path: '/orders', name: 'Orders', icon: Route },
+    { path: '/orders', name: 'Orders', icon: ScrollText },
     { path: '/', name: 'My Parcels', icon: Package },
-    { path: '/delivery', name: 'Delivery', icon: Container },
+    { path: '/delivery', name: 'My Deliveries', icon: Route },
 ];
 
 type NavBarItem = {
