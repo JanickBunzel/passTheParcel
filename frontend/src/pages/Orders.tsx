@@ -87,9 +87,11 @@ export default function Orders() {
 
     const [query, setQuery] = useState<string>('');
     const [sortBy, setSortBy] = useState<SortOption>(null);
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [isSortOpen, setIsSortOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithParcel | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filterType, setFilterType] = useState<ParcelRow['type'] | null>(null);
 
     // React Query hooks
     const { data: ordersData = [] } = useAvailableOrdersQuery();
@@ -108,7 +110,8 @@ export default function Orders() {
         setSelectedOrder(null);
     };
 
-    // Toggle filter dropdown
+    // Toggle sort dropdown
+    const toggleSort = () => setIsSortOpen((prev) => !prev);
     const toggleFilter = () => setIsFilterOpen((prev) => !prev);
 
     // Enrich orders with parcel, address, and receiver info
@@ -134,14 +137,24 @@ export default function Orders() {
         })
         .filter((o): o is OrderWithParcel => !!o);
 
+    const availableParcelTypes = Array.from(
+        new Set(orders.map(o => o.parcelData.type).filter(Boolean))
+    );
+
     const addToCart = async (order: OrderWithParcel) => {
         if (!user) return;
 
         claimOrderMutation.mutateAsync({ orderId: order.id, userId: user.id });
     };
 
-    // Apply sorting
-    const sortedOrders = sortItems(orders, sortBy);
+
+
+    // Apply filtering then sorting
+    const filteredOrders = orders.filter(
+        order => !filterType || order.parcelData.type === filterType
+    );
+
+    const sortedOrders = sortItems(filteredOrders, sortBy);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col relative">
@@ -151,17 +164,17 @@ export default function Orders() {
                 <div className="relative">
                     {/* Sort button */}
 
-                    <Button variant="outline" size="icon" onClick={toggleFilter}>
+                    <Button variant="outline" size="icon" onClick={toggleSort}>
                         <ArrowUpDown className="h-4 w-4" />
                     </Button>
 
-                    {isFilterOpen && (
+                    {isSortOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-md z-10 p-2 space-y-1">
                             <button
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
                                 onClick={() => {
                                     setSortBy('priceAsc');
-                                    setIsFilterOpen(false);
+                                    setIsSortOpen(false);
                                 }}
                             >
                                 Price: Low → High
@@ -170,7 +183,7 @@ export default function Orders() {
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
                                 onClick={() => {
                                     setSortBy('priceDesc');
-                                    setIsFilterOpen(false);
+                                    setIsSortOpen(false);
                                 }}
                             >
                                 Price: High → Low
@@ -179,7 +192,7 @@ export default function Orders() {
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
                                 onClick={() => {
                                     setSortBy('distanceAsc');
-                                    setIsFilterOpen(false);
+                                    setIsSortOpen(false);
                                 }}
                             >
                                 Distance: Short → Long
@@ -188,7 +201,7 @@ export default function Orders() {
                                 className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
                                 onClick={() => {
                                     setSortBy('distanceDesc');
-                                    setIsFilterOpen(false);
+                                    setIsSortOpen(false);
                                 }}
                             >
                                 Distance: Long → Short
@@ -196,9 +209,38 @@ export default function Orders() {
                         </div>
                     )}
                 </div>
-                <Button variant="outline" size="icon">
+                
+                <Button variant="outline" size="icon" onClick={toggleFilter}>
                     <Filter className="h-4 w-4" />
                 </Button>
+
+                {isFilterOpen && (
+                    <div className="absolute right-0 top-14 w-40 bg-white border rounded-md shadow-md z-10 p-2 space-y-1">
+                        <button
+                            className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
+                            onClick={() => {
+                                setFilterType(null);
+                                setIsFilterOpen(false);
+                            }}
+                        >
+                            All types
+                        </button>
+
+                        {availableParcelTypes.map((type) => (
+                            <button
+                                key={type}
+                                className="block w-full text-left text-sm hover:bg-gray-100 p-1 rounded"
+                                onClick={() => {
+                                    setFilterType(type);
+                                    setIsFilterOpen(false);
+                                }}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
             </div>
 
             {/* Order list */}
