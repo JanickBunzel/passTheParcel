@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/shadcn/button';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { useAccount } from '@/contexts/AccountContext';
-import { supabase } from '@/lib/supabaseClient';
 import { Plus, Clock, AlertTriangle } from 'lucide-react';
 import CreateParcelModal from '@/components/modals/CreateParcelModal';
 import type { AccountRow, AddressRow, ParcelRow } from '@/lib/types';
+import { useAllParcelsQuery } from '@/api/parcels.api';
+import { useAddressesQuery } from '@/api/addresses.api';
+import { useAccountsQuery } from '@/api/accounts.api';
 
 type ParcelUI = ParcelRow & {
     distanceKm: number;
@@ -46,54 +48,31 @@ function formatAddress(address?: AddressRow | null) {
 /* ---------------- page ---------------- */
 const MyParcels = () => {
     const { account } = useAccount();
+    const { data: addresses, isLoading: addressesLoading } = useAddressesQuery();
+    const { data: accounts, isLoading: accountsLoading } = useAccountsQuery();
+    const { data: allParcels, isLoading: parcelsLoading } = useAllParcelsQuery();
 
     const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
-    const [parcels, setParcels] = useState<ParcelUI[]>([]);
-    const [loading, setLoading] = useState(true);
     const [createOpen, setCreateOpen] = useState(false);
 
-    /* ---------- fetch parcels ---------- */
-    useEffect(() => {
-        if (!account?.id) return;
+    // Filter parcels for current user
+    const userParcelsRaw = (allParcels ?? []).filter((p) => p.sender === account?.id);
 
-        const fetchParcels = async () => {
-            setLoading(true);
-
-            const { data, error } = await supabase.from('parcels').select('*').eq('sender', account.id);
-
-            if (error || !data) {
-                console.error(error);
-                setLoading(false);
-                return;
-            }
-
-            // Filter out nulls for addressIds and receiverIds
-            const addressIds = data.map((p) => p.destination).filter((id): id is string => Boolean(id));
-            const receiverIds = data.map((p) => p.receiver).filter((id): id is string => Boolean(id));
-
-            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
-
-            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
-
-            const enriched: ParcelUI[] = data.map((parcel) => {
-                const distanceKm = mockDistanceKm();
-                return {
-                    ...parcel,
-                    distanceKm,
-                    eta: mockETA(),
-                    co2: mockCO2(distanceKm),
-                    price: mockPrice(distanceKm, parcel.weight),
-                    toAddress: addresses?.find((a) => a.id === parcel.destination) ?? null,
-                    toReceiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
-                };
-            });
-
-            setParcels(enriched);
-            setLoading(false);
+    // Enrich parcels with address and receiver info
+    const parcels: ParcelUI[] = userParcelsRaw.map((parcel) => {
+        const distanceKm = mockDistanceKm();
+        return {
+            ...parcel,
+            distanceKm,
+            eta: mockETA(),
+            co2: mockCO2(distanceKm),
+            price: mockPrice(distanceKm, parcel.weight),
+            toAddress: addresses?.find((a) => a.id === parcel.destination) ?? null,
+            toReceiver: accounts?.find((r) => r.id === parcel.receiver) ?? null,
         };
+    });
 
-        fetchParcels();
-    }, [account?.id]);
+    const loading = parcelsLoading || addressesLoading || accountsLoading;
 
     /* ---------- filters ---------- */
     const visibleParcels = parcels.filter((p) =>

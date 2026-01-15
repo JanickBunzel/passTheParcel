@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/shadcn/card';
 import { MapPin, Leaf, AlertTriangle, Check, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/shadcn/button';
 import type { AccountRow, AddressRow, ParcelRow, OrderWithParcel } from '@/lib/types';
 import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
+import { useDeliveryOrdersQuery, useMarkOrderDeliveredMutation } from '@/api/delivery.api';
+import { useAllParcelsQuery } from '@/api/parcels.api';
+import { useAddressesQuery } from '@/api/addresses.api';
+import type { AddressRow, OrderRow, ParcelRow } from '@/lib/types';
+import { useAccount } from '@/contexts/AccountContext';
 
 
 /* ---------------- mock helpers ---------------- */
@@ -63,10 +67,7 @@ function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
 }
 
 /* ---------------- component ---------------- */
-
 export default function Delivery() {
-    const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [userId, setUserId] = useState<string | null>(null);
     const [tab, setTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
     const [selectedOrder, setSelectedOrder] = useState<OrderWithParcel | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -81,42 +82,20 @@ export default function Delivery() {
         setSelectedOrder(null);
     };
 
-    /* ---------- current user ---------- */
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            setUserId(data.user?.id ?? null);
-        });
-    }, []);
+    const { account: user } = useAccount();
 
-    /* ---------- fetch orders ---------- */
-    useEffect(() => {
-        if (!userId) return;
+    // React Query hooks
+    const { data: ordersData = [] } = useDeliveryOrdersQuery(user?.id || null);
+    const { data: parcelsData = [] } = useAllParcelsQuery();
+    const { data: addresses = [] } = useAddressesQuery();
+    const markOrderDeliveredMutation = useMarkOrderDeliveredMutation();
 
-        const fetchOrders = async () => {
-            const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('owner', userId);
-            if (ordersError || !ordersData) return console.error(ordersError);
-
-            const parcelIds = ordersData.map((o) => o.parcel);
-            const { data: parcelsData, error: parcelsError } = await supabase
-                .from('parcels')
-                .select('*')
-                .in('id', parcelIds);
-            if (parcelsError || !parcelsData) return console.error(parcelsError);
-
-            const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
-            const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
-
-            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
-            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
-
-            const enriched: OrderWithParcel[] = ordersData.map((order) => {
-                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm();
-                const price = calculatePrice(parcel, distanceKm);
-                const co2 = calculateCO2Saved(parcel, distanceKm);
+    // Enrich orders with parcel and address info
+    const orders: OrderWithParcel[] = ordersData.map((order) => {
+        const parcel = parcelsData.find((p) => p.id === order.parcel)!;
+        const distanceKm = calculateDistanceKm();
+        const price = calculatePrice(parcel, distanceKm);
+        const co2 = calculateCO2Saved(parcel, distanceKm);
 
                 return {
                     ...order,
@@ -131,45 +110,13 @@ export default function Delivery() {
                 };
             });
 
-            setOrders(enriched);
-        };
-
-        fetchOrders();
-    }, [userId]);
-
     /* ---------- mark delivered ---------- */
     const markDelivered = async (order: OrderWithParcel) => {
-        const finishedAt = new Date().toISOString();
-
-        const { error: orderError } = await supabase.from('orders').update({ finished: finishedAt }).eq('id', order.id);
-
-        if (orderError) {
-            console.error(orderError);
-            return;
+        try {
+            await markOrderDeliveredMutation.mutateAsync({ orderId: order.id, parcelId: order.parcel.id });
+        } catch (error) {
+            console.error(error);
         }
-
-        const { error: parcelError } = await supabase
-            .from('parcels')
-            .update({ status: 'DELIVERED' })
-            .eq('id', order.parcelData.id);
-
-        if (parcelError) {
-            console.error(parcelError);
-            return;
-        }
-
-        // update local state
-        setOrders((prev) =>
-            prev.map((o) =>
-                o.id === order.id
-                    ? {
-                        ...o,
-                        finished: finishedAt,
-                        parcel: { ...order.parcel, status: "DELIVERED" },
-                    }
-                    : o
-            )
-        );
     };
 
     /* ---------- filter ---------- */
