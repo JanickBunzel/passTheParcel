@@ -99,7 +99,7 @@ export default function CreateParcelModal({ open, onClose, ownerId, ownerAddress
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-            <div className="bg-white rounded-2xl w-full max-w-md p-4 space-y-4">
+            <div className="bg-white rounded-2xl w-full max-w-md p-4 pb-24 space-y-4 overflow-y-auto max-h-screen">
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <h2 className="text-lg font-semibold">Create Parcel</h2>
