@@ -5,6 +5,9 @@ export type ParcelRow = Database['public']['Tables']['parcels']['Row'];
 export type AddressRow = Database['public']['Tables']['addresses']['Row'];
 export type AccountRow = Database['public']['Tables']['accounts']['Row'];
 
+export type ParcelInsert = Database['public']['Tables']['parcels']['Insert'];
+export type OrderInsert = Database['public']['Tables']['orders']['Insert'];
+
 export type SortableParcel = {
     id: string;
     price?: number;
