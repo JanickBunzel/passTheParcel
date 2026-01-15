@@ -7,6 +7,7 @@
 This project was developed as part of the **Application Project / Bachelorseminar, Computational Social Science** at the Technical University of Munich, in collaboration with the **City of Munich**.
 
 Supervisors: Klaus Mueller (City of Munich), Prof. Dr. Jürgen Pfeffer (TUM), Janine Schröder (TUM)
+
 Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
 
 ## 📋 Table of Contents
