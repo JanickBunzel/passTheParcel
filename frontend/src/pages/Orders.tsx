@@ -137,9 +137,7 @@ export default function Orders() {
         })
         .filter((o): o is OrderWithParcel => !!o);
 
-    const availableParcelTypes = Array.from(
-        new Set(orders.map(o => o.parcelData.type).filter(Boolean))
-    );
+    const availableParcelTypes = Array.from(new Set(orders.map((o) => o.parcelData.type).filter(Boolean)));
 
     const addToCart = async (order: OrderWithParcel) => {
         if (!user) return;
@@ -147,12 +145,8 @@ export default function Orders() {
         claimOrderMutation.mutateAsync({ orderId: order.id, userId: user.id });
     };
 
-
-
     // Apply filtering then sorting
-    const filteredOrders = orders.filter(
-        order => !filterType || order.parcelData.type === filterType
-    );
+    const filteredOrders = orders.filter((order) => !filterType || order.parcelData.type === filterType);
 
     const sortedOrders = sortItems(filteredOrders, sortBy);
 
@@ -209,7 +203,7 @@ export default function Orders() {
                         </div>
                     )}
                 </div>
-                
+
                 <Button variant="outline" size="icon" onClick={toggleFilter}>
                     <Filter className="h-4 w-4" />
                 </Button>
@@ -240,7 +234,6 @@ export default function Orders() {
                         ))}
                     </div>
                 )}
-
             </div>
 
             {/* Order list */}
