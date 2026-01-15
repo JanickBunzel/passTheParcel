@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAccount } from '@/contexts/AccountContext';
 import type { ParcelRow } from '@/lib/types';
 
-async function fetchMyParcels(): Promise<ParcelRow[]> {
+async function fetchAllParcels(): Promise<ParcelRow[]> {
     const { data, error } = await supabase.from('parcels').select('*');
 
     if (error) {
@@ -14,12 +14,12 @@ async function fetchMyParcels(): Promise<ParcelRow[]> {
     return data ?? [];
 }
 
-export function useParcelsQuery() {
+export function useAllParcelsQuery() {
     const { account } = useAccount();
 
     return useQuery({
         queryKey: ['parcels'],
         enabled: !!account,
-        queryFn: fetchMyParcels,
+        queryFn: fetchAllParcels,
     });
 }

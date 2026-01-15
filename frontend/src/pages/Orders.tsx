@@ -3,10 +3,14 @@ import { Card, CardContent } from '@/components/shadcn/card';
 import { Button } from '@/components/shadcn/button';
 import { Input } from '@/components/shadcn/input';
 import { Filter, ArrowUpDown, MapPin, Plus, AlertTriangle, Leaf, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { useAvailableOrdersQuery, useClaimOrderMutation } from '@/api/orders.api';
+import { useAllParcelsQuery } from '@/api/parcels.api';
+import { useAddressesQuery } from '@/api/addresses.api';
+import { useAccountsQuery } from '@/api/accounts.api';
 import { sortItems, type SortOption } from '@/lib/utils';
 import type { AccountRow, AddressRow, OrderWithParcel, ParcelRow } from '@/lib/types';
 import OrderDetailsModal from '@/components/modals/OrderDetailsModal';
+import { useAccount } from '@/contexts/AccountContext';
 
 // -----------------------------
 // Mock calculation helpers
@@ -79,13 +83,20 @@ function formatReceiver(_parcel: ParcelRow, receiver: AccountRow): string {
 // -----------------------------
 
 export default function Orders() {
+    const { account: user } = useAccount();
+
     const [query, setQuery] = useState<string>('');
-    const [orders, setOrders] = useState<OrderWithParcel[]>([]);
-    const [user, setUser] = useState<any>(null);
     const [sortBy, setSortBy] = useState<SortOption>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithParcel | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
+
+    // React Query hooks
+    const { data: ordersData = [] } = useAvailableOrdersQuery();
+    const { data: parcelsData = [] } = useAllParcelsQuery();
+    const { data: addresses = [] } = useAddressesQuery();
+    const { data: receivers = [] } = useAccountsQuery();
+    const claimOrderMutation = useClaimOrderMutation();
 
     const openDetails = (order: OrderWithParcel) => {
         setSelectedOrder(order);
@@ -100,91 +111,30 @@ export default function Orders() {
     // Toggle filter dropdown
     const toggleFilter = () => setIsFilterOpen((prev) => !prev);
 
-    // Fetch logged-in user
-    useEffect(() => {
-        const fetchUser = async () => {
-            const {
-                data: { user: accountUser },
-                error: accountError,
-            } = await supabase.auth.getUser();
-            if (accountError || !accountUser) {
-                console.error('No user logged in:', accountError);
-                return;
-            }
-            setUser(accountUser);
+    // Enrich orders with parcel, address, and receiver info
+    const orders: OrderWithParcel[] = ordersData.map((order) => {
+        const parcel = parcelsData.find((p) => p.id === order.parcel)!;
+        const distanceKm = calculateDistanceKm(parcel);
+        const price = calculatePrice(parcel, distanceKm);
+        const co2 = calculateCO2Saved(parcel, distanceKm);
+
+        return {
+            ...order,
+            deadline: mockDeadlineMs(order.id),
+            parcelData: parcel,
+            fromAddress: addresses.find((a) => a.id === order.from) ?? null,
+            toAddress: addresses.find((a) => a.id === order.to) ?? null,
+            receiver: receivers.find((r) => r.id === parcel.receiver) ?? null,
+            distanceKm,
+            price,
+            co2,
         };
-        fetchUser();
-    }, []);
-
-    // Fetch orders
-    useEffect(() => {
-        const fetchOrders = async () => {
-            const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select('*')
-                .is('owner', null);
-            if (ordersError || !ordersData) return console.error(ordersError);
-
-            const parcelIds = ordersData.map((o) => o.parcel);
-            const { data: parcelsData, error: parcelsError } = await supabase
-                .from('parcels')
-                .select('*')
-                .in('id', parcelIds);
-            if (parcelsError || !parcelsData) return console.error(parcelsError);
-
-            const addressIds = ordersData.flatMap((o) => [o.from, o.to]).filter((id): id is string => Boolean(id));
-            const receiverIds = parcelsData.map((p) => p.receiver).filter((id): id is string => Boolean(id));
-
-            const { data: addresses } = await supabase.from('addresses').select('*').in('id', addressIds);
-            const { data: receivers } = await supabase.from('accounts').select('*').in('id', receiverIds);
-
-            const enriched: OrderWithParcel[] = ordersData.map((order) => {
-                const parcel = parcelsData.find((p) => p.id === order.parcel)!;
-                const distanceKm = calculateDistanceKm(parcel);
-                const price = calculatePrice(parcel, distanceKm);
-                const co2 = calculateCO2Saved(parcel, distanceKm);
-
-                return {
-                    ...order,
-                    deadline: mockDeadlineMs(order.id),
-                    parcelData: parcel,
-                    fromAddress: addresses?.find((a) => a.id === order.from) ?? null,
-                    toAddress: addresses?.find((a) => a.id === order.to) ?? null,
-                    receiver: receivers?.find((r) => r.id === parcel.receiver) ?? null,
-                    distanceKm,
-                    price,
-                    co2,
-                };
-            });
-
-            setOrders(enriched);
-        };
-        fetchOrders();
-    }, []);
+    });
 
     const addToCart = async (order: OrderWithParcel) => {
-        if (!user) {
-            console.warn('No user logged in!');
-            return;
-        }
+        if (!user) return;
 
-        const startedAt = new Date().toISOString();
-
-        const { error } = await supabase
-            .from('orders')
-            .update({
-                owner: user.id,
-                started: startedAt,
-            })
-            .eq('id', order.id);
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-
-        // Remove from available orders list
-        setOrders((prev) => prev.filter((o) => o.id !== order.id));
+        claimOrderMutation.mutateAsync({ orderId: order.id, userId: user.id });
     };
 
     // Apply sorting

@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { useAccountQuery, type Account } from '@/api/account.api';
+import { useAccountQuery } from '@/api/account.api';
+import type { AccountRow } from '@/lib/types';
 
 export type AccountContext = {
-    account: Account | null | undefined;
+    account: AccountRow | null | undefined;
     accountLoading: boolean;
     accountError: unknown;
     refetchAccount: () => Promise<unknown>;
