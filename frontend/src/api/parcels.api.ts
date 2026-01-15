@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { useAccount } from '@/contexts/AccountContext';
-import type { Database } from '@/lib/database.types';
+import type { ParcelRow } from '@/lib/types';
 
-export type Parcel = Database['public']['Tables']['parcels']['Row'];
-
-async function fetchMyParcels(): Promise<Parcel[]> {
+async function fetchMyParcels(): Promise<ParcelRow[]> {
     const { data, error } = await supabase.from('parcels').select('*');
 
     if (error) {

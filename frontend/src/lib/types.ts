@@ -1,9 +1,9 @@
 import type { Database } from '@/lib/database.types';
 
-type OrderRow = Database['public']['Tables']['orders']['Row'];
-type ParcelRow = Database['public']['Tables']['parcels']['Row'];
-type AddressRow = Database['public']['Tables']['addresses']['Row'];
-type UserRow = Database['public']['Tables']['accounts']['Row'];
+export type OrderRow = Database['public']['Tables']['orders']['Row'];
+export type ParcelRow = Database['public']['Tables']['parcels']['Row'];
+export type AddressRow = Database['public']['Tables']['addresses']['Row'];
+export type UserRow = Database['public']['Tables']['accounts']['Row'];
 
 export type SortableParcel = {
     id: string;
@@ -20,7 +20,7 @@ export type OrderWithParcel = OrderRow &
         toAddress: AddressRow | null;
         receiver: UserRow | null;
         distanceKm: number;
-        price: number;     // ✅ MUST be required
+        price: number; // ✅ MUST be required
         co2: number;
         deadline: number;
     };

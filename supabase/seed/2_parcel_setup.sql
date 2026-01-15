@@ -45,7 +45,7 @@ values
 -- -------------------------------------------------------------------
 -- Parcels
 -- -------------------------------------------------------------------
--- We look up account + address IDs dynamically so this seed is re-runnable
+-- Parcel 1
 insert into public.parcels (
     sender,
     receiver,
@@ -54,7 +54,9 @@ insert into public.parcels (
     type,
     status,
     weight,
-    description
+    description,
+    lat,
+    lng
 )
 select
     a_sender.id,
@@ -64,12 +66,15 @@ select
     'NORMAL',
     'AWAITING_DELIVERY',
     2.5,
-    'Books shipment'
+    'Books shipment',
+    48.137154,
+    11.576124
 from public.accounts a_sender
          join public.accounts a_receiver on a_receiver.email = 'bob@example.com'
          join public.addresses addr on addr.city = 'Berlin'
 where a_sender.email = 'alice@example.com';
 
+-- Parcel 2
 insert into public.parcels (
     sender,
     receiver,
@@ -78,7 +83,9 @@ insert into public.parcels (
     type,
     status,
     weight,
-    description
+    description,
+    lat,
+    lng
 )
 select
     a_sender.id,
@@ -88,12 +95,15 @@ select
     'FOOD',
     'IN_DELIVERY',
     1.2,
-    'Fresh pasta package'
+    'Fresh pasta package',
+    48.132554,
+    11.566768
 from public.accounts a_sender
          join public.accounts a_receiver on a_receiver.email = 'eva@example.com'
          join public.addresses addr on addr.city = 'Rome'
 where a_sender.email = 'carla@example.com';
 
+-- Parcel 3
 insert into public.parcels (
     sender,
     receiver,
@@ -102,7 +112,9 @@ insert into public.parcels (
     type,
     status,
     weight,
-    description
+    description,
+    lat,
+    lng
 )
 select
     a_sender.id,
@@ -112,10 +124,70 @@ select
     'FRAGILE',
     'DELIVERED',
     4.8,
-    'Glassware set'
+    'Glassware set',
+    48.142116,
+    11.577536
 from public.accounts a_sender
          join public.accounts a_receiver on a_receiver.email = 'alice@example.com'
          join public.addresses addr on addr.city = 'Paris'
+where a_sender.email = 'david@example.com';
+
+-- Parcel 4
+insert into public.parcels (
+    sender,
+    receiver,
+    owner,
+    destination,
+    type,
+    status,
+    weight,
+    description,
+    lat,
+    lng
+)
+select
+    a_sender.id,
+    a_receiver.id,
+    a_sender.id,
+    addr.id,
+    'NORMAL',
+    'AWAITING_DELIVERY',
+    3.1,
+    'Parcel 4',
+    48.135125,
+    11.57545
+from public.accounts a_sender
+         join public.accounts a_receiver on a_receiver.email = 'bob@example.com'
+         join public.addresses addr on addr.city = 'Berlin'
+where a_sender.email = 'carla@example.com';
+
+-- Parcel 5
+insert into public.parcels (
+    sender,
+    receiver,
+    owner,
+    destination,
+    type,
+    status,
+    weight,
+    description,
+    lat,
+    lng
+)
+select
+    a_sender.id,
+    a_receiver.id,
+    a_sender.id,
+    addr.id,
+    'FOOD',
+    'IN_DELIVERY',
+    2.8,
+    'Parcel 5',
+    48.134,
+    11.5842
+from public.accounts a_sender
+         join public.accounts a_receiver on a_receiver.email = 'eva@example.com'
+         join public.addresses addr on addr.city = 'Rome'
 where a_sender.email = 'david@example.com';
 
 -- -------------------------------------------------------------------

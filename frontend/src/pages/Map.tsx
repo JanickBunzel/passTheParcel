@@ -3,53 +3,31 @@ import { Button } from '@/components/shadcn/button';
 import { Locate, MapPin, ZoomIn, ZoomOut } from 'lucide-react';
 import { Map as MapLibre, type MapRef, Marker } from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-const MOCKED_PARCELS = [
-    {
-        id: 'parcel-marienplatz',
-        location: { lat: 48.137154, lng: 11.576124 },
-    },
-    {
-        id: 'parcel-sendlinger-tor',
-        location: { lat: 48.132554, lng: 11.566768 },
-    },
-    {
-        id: 'parcel-odeonsplatz',
-        location: { lat: 48.142116, lng: 11.577536 },
-    },
-    {
-        id: 'parcel-viktualienmarkt',
-        location: { lat: 48.135125, lng: 11.57545 },
-    },
-    {
-        id: 'parcel-isartor',
-        location: { lat: 48.134, lng: 11.5842 },
-    },
-];
+import { useParcelsQuery } from '@/api/parcels.api';
 
 const Map = () => {
     const mapRef = useRef<MapRef | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
 
-    const parcels = MOCKED_PARCELS;
+    const { data: parcels = [] } = useParcelsQuery();
 
     const zoomOnParcels = () => {
         const map = mapRef.current;
         if (!map) return;
 
-        const points = parcels.filter((parcel) => parcel.location?.lat != null && parcel.location?.lng != null);
+        const points = parcels.filter((parcel) => parcel.lat != null && parcel.lng != null);
         if (points.length === 0) return;
 
         if (points.length === 1) {
-            const { lat, lng } = points[0].location!;
+            const { lat, lng } = points[0];
             map.flyTo({ center: [lng!, lat!], zoom: 12, duration: 600 });
             return;
         }
 
-        const minLng = Math.min(...points.map((parcel) => parcel.location!.lng!));
-        const minLat = Math.min(...points.map((parcel) => parcel.location!.lat!));
-        const maxLng = Math.max(...points.map((parcel) => parcel.location!.lng!));
-        const maxLat = Math.max(...points.map((parcel) => parcel.location!.lat!));
+        const minLng = Math.min(...points.map((parcel) => parcel.lng!));
+        const minLat = Math.min(...points.map((parcel) => parcel.lat!));
+        const maxLng = Math.max(...points.map((parcel) => parcel.lng!));
+        const maxLat = Math.max(...points.map((parcel) => parcel.lat!));
 
         const bounds: [[number, number], [number, number]] = [
             [minLng, minLat],
@@ -108,11 +86,11 @@ const Map = () => {
                 attributionControl={false}
             >
                 {parcels
-                    .filter((parcel) => parcel.location != null)
+                    .filter((parcel) => !!parcel.lat && !!parcel.lng)
                     .map((parcel) => (
                         <Marker
-                            longitude={parcel.location!.lng}
-                            latitude={parcel.location!.lat}
+                            longitude={parcel.lng!}
+                            latitude={parcel.lat!}
                             anchor="bottom"
                             key={parcel.id}
                             className="cursor-pointer"

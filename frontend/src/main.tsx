@@ -8,8 +8,7 @@ import '@/index.css';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './lib/router';
 import { Toaster } from 'sonner';
-
-const SHOW_DEVTOOLS = false;
+import { HIDE_DEVTOOLS } from './lib/env';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -37,7 +36,7 @@ createRoot(document.getElementById('root')!).render(
                 </AccountProvider>
             </AuthProvider>
 
-            {SHOW_DEVTOOLS && <ReactQueryDevtools buttonPosition="bottom-right" />}
+            {!HIDE_DEVTOOLS && <ReactQueryDevtools buttonPosition="bottom-right" />}
             <Toaster position="bottom-right" />
         </QueryClientProvider>
     </StrictMode>

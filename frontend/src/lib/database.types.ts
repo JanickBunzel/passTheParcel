@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       accounts: {
@@ -145,8 +170,10 @@ export type Database = {
           description: string | null
           destination: string
           id: string
+          lat: number | null
+          lng: number | null
           owner: string
-          receiver: string | null
+          receiver: string
           sender: string
           status: Database["public"]["Enums"]["parcel_status"]
           type: Database["public"]["Enums"]["parcel_type"]
@@ -156,8 +183,10 @@ export type Database = {
           description?: string | null
           destination: string
           id?: string
+          lat?: number | null
+          lng?: number | null
           owner: string
-          receiver?: string | null
+          receiver: string
           sender: string
           status?: Database["public"]["Enums"]["parcel_status"]
           type?: Database["public"]["Enums"]["parcel_type"]
@@ -167,8 +196,10 @@ export type Database = {
           description?: string | null
           destination?: string
           id?: string
+          lat?: number | null
+          lng?: number | null
           owner?: string
-          receiver?: string | null
+          receiver?: string
           sender?: string
           status?: Database["public"]["Enums"]["parcel_status"]
           type?: Database["public"]["Enums"]["parcel_type"]
@@ -343,6 +374,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       parcel_status: ["AWAITING_DELIVERY", "IN_DELIVERY", "DELIVERED"],
