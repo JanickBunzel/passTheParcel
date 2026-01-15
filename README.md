@@ -8,7 +8,7 @@ This project was developed as part of the **Application Project / Bachelorsemina
 
 Supervisors: Klaus Mueller (City of Munich), Prof. Dr. Jürgen Pfeffer (TUM), Janine Schröder (TUM)
 
-Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
+Team: Ella Lavelle, Janick Bunzel, Katharina Jäger, Paul Sandner
 
 ## 📋 Table of Contents
 - [Problem and Background](#-problem-and-background-of-the-project)
