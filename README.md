@@ -5,6 +5,7 @@
 **Pass the Parcel** is a prototype for a **peer-to-peer parcel delivery** platform designed to optimize urban logistics by enabling couriers to dynamically share delivery responsibility. Our system reduces route overlaps, lowers CO₂ emissions, and speeds up deliveries by allowing couriers to bid on and handoff parcels in real time.
 
 This project was developed as part of the **Application Project / Bachelorseminar, Computational Social Science** at the Technical University of Munich, in collaboration with the **City of Munich**.
+
 Supervisors: Klaus Mueller (City of Munich), Prof. Dr. Jürgen Pfeffer (TUM), Janine Schröder (TUM)
 Team: Ella Lavelle-Hayes, Janick Bunzel, Katharina Jäger, Paul Sander
 
