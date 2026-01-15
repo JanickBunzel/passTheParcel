@@ -246,6 +246,7 @@ export default function Delivery() {
                 open={detailsOpen}
                 order={selectedOrder}
                 onClose={closeDetails}
+                currentUserId={user?.id ?? null}
                 formatAddress={formatAddress}
                 formatReceiver={formatReceiver}
                 formatDeadline={(ms: number) =>

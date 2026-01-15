@@ -1,43 +1,71 @@
-import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from 'lucide-react';
-import { Button } from '@/components/shadcn/button';
-import { Card, CardContent } from '@/components/shadcn/card';
-import type { OrderWithParcel } from '@/lib/types'; // use your existing type
+import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from "lucide-react";
+import { Button } from "@/components/shadcn/button";
+import { Card, CardContent } from "@/components/shadcn/card";
+import type { OrderWithParcel } from "@/lib/types";
 
 type Props = {
     open: boolean;
     order: OrderWithParcel | null;
     onClose: () => void;
     onTakeOrder?: (order: OrderWithParcel) => void;
+
+    /** add this */
+    currentUserId: string | null;
+
     formatAddress: (address: any | null | undefined) => string;
     formatReceiver: (parcel: any, receiver: any | null | undefined) => string;
-    formatDeadline?: (deadline: any) => string; // optional helper if you have one
+    formatDeadline?: (deadline: any) => string;
 };
 
 export default function OrderDetailsModal({
-    open,
-    order,
-    onClose,
-    onTakeOrder,
-    formatAddress,
-    formatReceiver,
-    formatDeadline,
-}: Props) {
+                                              open,
+                                              order,
+                                              onClose,
+                                              onTakeOrder,
+                                              currentUserId,
+                                              formatAddress,
+                                              formatReceiver,
+                                              formatDeadline,
+                                          }: Props) {
     if (!open || !order) return null;
 
     const parcel = (order as any).parcelData ?? (order as any).parcel ?? null;
 
-    // If you store deadline as ms number, pass formatDeadline(deadlineMs).
-    // If deadline is missing, show "—".
     const deadlineText =
         (order as any).deadline != null
             ? formatDeadline
                 ? formatDeadline((order as any).deadline)
                 : String((order as any).deadline)
             : (order as any).deadlineMs != null && formatDeadline
-            ? formatDeadline((order as any).deadlineMs)
-            : '—';
+                ? formatDeadline((order as any).deadlineMs)
+                : "—";
 
-    const canTake = order.owner == null; // only allow if unclaimed
+    const ownerId = order.owner ?? null;
+    const isFinished = order.finished != null;
+
+    const isUnclaimed = ownerId == null;
+    const isMine = ownerId != null && currentUserId != null && ownerId === currentUserId;
+    const isOther = ownerId != null && currentUserId != null && ownerId !== currentUserId;
+
+    // QR is only shown if:
+    // - order is not finished AND (unclaimed OR taken by me)
+    const showQr = !isFinished && (isUnclaimed || isMine);
+
+    // CTA/button only when unclaimed
+    const showTakeButton = isUnclaimed && !isFinished;
+
+    // Status text rules
+    let statusLine: string | null = null;
+
+    if (isFinished) {
+        statusLine = isMine ? "Order completed by you" : "Order completed by another user";
+    } else if (isMine) {
+        statusLine = "Order taken by you";
+    } else if (isOther) {
+        statusLine = "Order taken by another user";
+    } else {
+        statusLine = null; // unclaimed -> no status line, show button instead
+    }
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -54,23 +82,32 @@ export default function OrderDetailsModal({
                 </div>
 
                 <div className="p-4 space-y-4 overflow-y-auto pb-24">
-                    {/* QR placeholder */}
-                    <Card className="rounded-2xl">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
-                                <QrCode className="h-4 w-4" />
-                                Pickup / handover QR
-                            </div>
+                    {/* Status banner (if applicable) */}
+                    {statusLine && (
+                        <div className="rounded-xl border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                            {statusLine}
+                        </div>
+                    )}
 
-                            {/* Placeholder QR block */}
-                            <div className="w-full aspect-square max-h-65 mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
-                                <div className="text-center">
-                                    <div className="font-semibold">QR Code Placeholder</div>
-                                    <div className="text-xs mt-1">Will be used for pickup / passing authentication</div>
+                    {/* QR placeholder (only if allowed) */}
+                    {showQr && (
+                        <Card className="rounded-2xl">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
+                                    <QrCode className="h-4 w-4" />
+                                    Pickup / handover QR
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+
+                                {/* Placeholder QR block */}
+                                <div className="w-full aspect-square max-h-[260px] mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
+                                    <div className="text-center">
+                                        <div className="font-semibold">QR Code Placeholder</div>
+                                        <div className="text-xs mt-1">Will be used for pickup / passing authentication</div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Key info */}
                     <div className="space-y-2 text-sm text-gray-800">
@@ -78,11 +115,12 @@ export default function OrderDetailsModal({
                             <MapPin className="h-4 w-4 mt-0.5 text-gray-500" />
                             <div>
                                 <div>
-                                    <span className="font-medium">From:</span>{' '}
+                                    <span className="font-medium">From:</span>{" "}
                                     {formatAddress((order as any).fromAddress)}
                                 </div>
                                 <div>
-                                    <span className="font-medium">To:</span> {formatAddress((order as any).toAddress)}
+                                    <span className="font-medium">To:</span>{" "}
+                                    {formatAddress((order as any).toAddress)}
                                 </div>
                             </div>
                         </div>
@@ -90,7 +128,7 @@ export default function OrderDetailsModal({
                         <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <div>
-                                <span className="font-medium">Receiver:</span>{' '}
+                                <span className="font-medium">Receiver:</span>{" "}
                                 {formatReceiver(parcel, (order as any).receiver)}
                             </div>
                         </div>
@@ -116,17 +154,17 @@ export default function OrderDetailsModal({
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <div className="text-gray-500">Weight</div>
-                                    <div className="font-semibold">{parcel?.weight ?? '—'} g</div>
+                                    <div className="font-semibold">{parcel?.weight ?? "—"} g</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500">Distance</div>
-                                    <div className="font-semibold">{(order as any).distanceKm ?? '—'} km</div>
+                                    <div className="font-semibold">{(order as any).distanceKm ?? "—"} km</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500 flex items-center gap-1">
                                         <Leaf className="h-4 w-4" /> CO₂ saved
                                     </div>
-                                    <div className="font-semibold">{(order as any).co2 ?? '—'} g</div>
+                                    <div className="font-semibold">{(order as any).co2 ?? "—"} g</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500 flex items-center gap-1">
@@ -138,11 +176,18 @@ export default function OrderDetailsModal({
                         </CardContent>
                     </Card>
 
-                    {/* Action */}
-                    {canTake && (
+                    {/* Action: only if unclaimed */}
+                    {showTakeButton && (
                         <Button className="w-full" onClick={() => onTakeOrder?.(order)}>
-                            Take order / Add to cart
+                            Take order
                         </Button>
+                    )}
+
+                    {/* When taken by you (and not finished), show a non-action info row instead of button */}
+                    {!showTakeButton && !isFinished && isMine && (
+                        <div className="text-sm text-gray-600 text-center">
+                            You have already taken this order.
+                        </div>
                     )}
                 </div>
             </div>

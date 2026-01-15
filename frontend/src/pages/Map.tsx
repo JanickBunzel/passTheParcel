@@ -9,6 +9,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useAddressesQuery } from '@/api/addresses.api';
 import { useAccountsQuery } from '@/api/accounts.api';
 import { useOrdersQuery } from '@/api/orders.api';
+import { useAccount } from '@/contexts/AccountContext.tsx';
 
 /* ---------- helpers (same as elsewhere) ---------- */
 const calculateDistanceKm = () => Number((Math.random() * 4.8 + 0.2).toFixed(2));
@@ -59,6 +60,7 @@ function formatReceiver(_parcel: ParcelRow, receiver: AccountRow) {
 }
 
 const Map = () => {
+    const { account: user } = useAccount();
     const { data: orders = [] } = useOrdersQuery();
     const mapRef = useRef<MapRef | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -237,6 +239,7 @@ const Map = () => {
                     // For now, just log to show wiring works.
                     console.log('Take order', o.id);
                 }}
+                currentUserId={user?.id ?? null}
                 formatAddress={formatAddress}
                 formatReceiver={formatReceiver}
                 formatDeadline={formatDeadline}

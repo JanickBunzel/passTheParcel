@@ -279,6 +279,7 @@ export default function Orders() {
                 order={selectedOrder}
                 onClose={closeDetails}
                 onTakeOrder={addToCart} // uses your existing logic; modal only shows if owner == null
+                currentUserId={user?.id ?? null}
                 formatAddress={formatAddress}
                 formatReceiver={formatReceiver}
                 formatDeadline={(deadlineMs: number) =>
