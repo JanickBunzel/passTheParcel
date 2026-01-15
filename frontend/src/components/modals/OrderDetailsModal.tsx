@@ -1,7 +1,7 @@
-import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from "lucide-react";
-import { Button } from "@/components/shadcn/button";
-import { Card, CardContent } from "@/components/shadcn/card";
-import type { OrderWithParcel } from "@/lib/types";
+import { X, MapPin, Leaf, QrCode, Package, Clock, User, Euro } from 'lucide-react';
+import { Button } from '@/components/shadcn/button';
+import { Card, CardContent } from '@/components/shadcn/card';
+import type { OrderWithParcel } from '@/lib/types';
 
 type Props = {
     open: boolean;
@@ -18,15 +18,15 @@ type Props = {
 };
 
 export default function OrderDetailsModal({
-                                              open,
-                                              order,
-                                              onClose,
-                                              onTakeOrder,
-                                              currentUserId,
-                                              formatAddress,
-                                              formatReceiver,
-                                              formatDeadline,
-                                          }: Props) {
+    open,
+    order,
+    onClose,
+    onTakeOrder,
+    currentUserId,
+    formatAddress,
+    formatReceiver,
+    formatDeadline,
+}: Props) {
     if (!open || !order) return null;
 
     const parcel = (order as any).parcelData ?? (order as any).parcel ?? null;
@@ -37,8 +37,8 @@ export default function OrderDetailsModal({
                 ? formatDeadline((order as any).deadline)
                 : String((order as any).deadline)
             : (order as any).deadlineMs != null && formatDeadline
-                ? formatDeadline((order as any).deadlineMs)
-                : "—";
+            ? formatDeadline((order as any).deadlineMs)
+            : '—';
 
     const ownerId = order.owner ?? null;
     const isFinished = order.finished != null;
@@ -58,11 +58,11 @@ export default function OrderDetailsModal({
     let statusLine: string | null = null;
 
     if (isFinished) {
-        statusLine = isMine ? "Order completed by you" : "Order completed by another user";
+        statusLine = isMine ? 'Order completed by you' : 'Order completed by another user';
     } else if (isMine) {
-        statusLine = "Order taken by you";
+        statusLine = 'Order taken by you';
     } else if (isOther) {
-        statusLine = "Order taken by another user";
+        statusLine = 'Order taken by another user';
     } else {
         statusLine = null; // unclaimed -> no status line, show button instead
     }
@@ -84,29 +84,25 @@ export default function OrderDetailsModal({
                 <div className="p-4 space-y-4 overflow-y-auto pb-24">
                     {/* Status banner (if applicable) */}
                     {statusLine && (
-                        <div className="rounded-xl border bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                            {statusLine}
-                        </div>
+                        <div className="rounded-xl border bg-gray-50 px-3 py-2 text-sm text-gray-700">{statusLine}</div>
                     )}
 
                     {/* QR placeholder (only if allowed) */}
                     {showQr && (
-                        <Card className="rounded-2xl">
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
-                                    <QrCode className="h-4 w-4" />
-                                    Pickup / handover QR
-                                </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
+                                <QrCode className="h-4 w-4" />
+                                Pickup / handover QR
+                            </div>
 
-                                {/* Placeholder QR block */}
-                                <div className="w-full aspect-square max-h-[260px] mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
-                                    <div className="text-center">
-                                        <div className="font-semibold">QR Code Placeholder</div>
-                                        <div className="text-xs mt-1">Will be used for pickup / passing authentication</div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                            <div className="w-full aspect-square max-h-50 mx-auto rounded-xl border-2 border-dashed flex items-center justify-center text-gray-500">
+                                <img
+                                    src="PickupQrCode.png"
+                                    alt="PickupQrCode"
+                                    className="size-full object-contain opacity-70"
+                                />
+                            </div>
+                        </div>
                     )}
 
                     {/* Key info */}
@@ -115,12 +111,11 @@ export default function OrderDetailsModal({
                             <MapPin className="h-4 w-4 mt-0.5 text-gray-500" />
                             <div>
                                 <div>
-                                    <span className="font-medium">From:</span>{" "}
+                                    <span className="font-medium">From:</span>{' '}
                                     {formatAddress((order as any).fromAddress)}
                                 </div>
                                 <div>
-                                    <span className="font-medium">To:</span>{" "}
-                                    {formatAddress((order as any).toAddress)}
+                                    <span className="font-medium">To:</span> {formatAddress((order as any).toAddress)}
                                 </div>
                             </div>
                         </div>
@@ -128,7 +123,7 @@ export default function OrderDetailsModal({
                         <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <div>
-                                <span className="font-medium">Receiver:</span>{" "}
+                                <span className="font-medium">Receiver:</span>{' '}
                                 {formatReceiver(parcel, (order as any).receiver)}
                             </div>
                         </div>
@@ -154,17 +149,17 @@ export default function OrderDetailsModal({
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <div className="text-gray-500">Weight</div>
-                                    <div className="font-semibold">{parcel?.weight ?? "—"} g</div>
+                                    <div className="font-semibold">{parcel?.weight ?? '—'} g</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500">Distance</div>
-                                    <div className="font-semibold">{(order as any).distanceKm ?? "—"} km</div>
+                                    <div className="font-semibold">{(order as any).distanceKm ?? '—'} km</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500 flex items-center gap-1">
                                         <Leaf className="h-4 w-4" /> CO₂ saved
                                     </div>
-                                    <div className="font-semibold">{(order as any).co2 ?? "—"} g</div>
+                                    <div className="font-semibold">{(order as any).co2 ?? '—'} g</div>
                                 </div>
                                 <div>
                                     <div className="text-gray-500 flex items-center gap-1">
@@ -185,9 +180,7 @@ export default function OrderDetailsModal({
 
                     {/* When taken by you (and not finished), show a non-action info row instead of button */}
                     {!showTakeButton && !isFinished && isMine && (
-                        <div className="text-sm text-gray-600 text-center">
-                            You have already taken this order.
-                        </div>
+                        <div className="text-sm text-gray-600 text-center">You have already taken this order.</div>
                     )}
                 </div>
             </div>
